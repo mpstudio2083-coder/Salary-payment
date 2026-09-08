@@ -1,0 +1,6 @@
+{
+  "name": "विद्यालय तलबी भर्पाई प्रणाली",
+  "description": "नेपालका विद्यालयहरूको लागि वर्ष र महिना अनुसार स्वचालित गणना हुने डिजिटल तलबी भर्पाई प्रणाली",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
