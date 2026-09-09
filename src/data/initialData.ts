@@ -392,11 +392,114 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaKatti: 0,
     citKatti: 0,
     dashainPoshakBhatta: 0
+  },
+  {
+    id: 't-20',
+    sn: 20,
+    name: 'धर्म राज महतो',
+    designation: 'राहत शिक्षक',
+    category: 'relief',
+    basicSalary: 34730,
+    gradeCount: 0,
+    gradeRate: 0,
+    gradeAmount: 0,
+    koshThap: 0,
+    bimaThap: 0,
+    praABhatta: 0,
+    mahangiBhatta: 5000,
+    anyaBhatta: 0,
+    koshKatti: 0,
+    bimaKatti: 0,
+    citKatti: 0,
+    dashainPoshakBhatta: 0
+  },
+  {
+    id: 't-21',
+    sn: 21,
+    name: 'बिजय कुमार राजवंशी',
+    designation: 'राहत शिक्षक',
+    category: 'relief',
+    basicSalary: 32902,
+    gradeCount: 0,
+    gradeRate: 0,
+    gradeAmount: 0,
+    koshThap: 0,
+    bimaThap: 0,
+    praABhatta: 0,
+    mahangiBhatta: 5000,
+    anyaBhatta: 0,
+    koshKatti: 0,
+    bimaKatti: 0,
+    citKatti: 0,
+    dashainPoshakBhatta: 0
+  },
+  {
+    id: 't-22',
+    sn: 22,
+    name: 'सपना राई',
+    designation: 'बालविकास शिक्षक',
+    category: 'contract',
+    basicSalary: 17000,
+    gradeCount: 0,
+    gradeRate: 0,
+    gradeAmount: 0,
+    koshThap: 0,
+    bimaThap: 0,
+    praABhatta: 0,
+    mahangiBhatta: 0,
+    anyaBhatta: 0,
+    koshKatti: 0,
+    bimaKatti: 0,
+    citKatti: 0,
+    dashainPoshakBhatta: 0
+  },
+  {
+    id: 't-23',
+    sn: 23,
+    name: 'हरी माया लिम्बु',
+    designation: 'बालविकास शिक्षक',
+    category: 'contract',
+    basicSalary: 17000,
+    gradeCount: 0,
+    gradeRate: 0,
+    gradeAmount: 0,
+    koshThap: 0,
+    bimaThap: 0,
+    praABhatta: 0,
+    mahangiBhatta: 0,
+    anyaBhatta: 0,
+    koshKatti: 0,
+    bimaKatti: 0,
+    citKatti: 0,
+    dashainPoshakBhatta: 0
   }
 ];
 
-// Calculate full payroll for 2082/83 (Quarterly = 3 months)
-export const initialTeachers2082: TeacherRecord[] = rawTeachers2082.map(t => calculateTeacherPayroll(t, 3, false));
+// Calculate full payroll for 2082/83 (Quarterly = 3 months, Shrawan to Asar)
+export const initialTeachers2082: TeacherRecord[] = rawTeachers2082.map(t => calculateTeacherPayroll(t, 3, false, {
+  includeDashain: true,
+  includePoshak: false
+}));
+
+// Generate 2083/84 (New Year from 2083 Shrawan to 2084 Asar: with +1 grade for permanent teachers and customizable amounts)
+export const initialTeachers2083: TeacherRecord[] = rawTeachers2082.map(t => {
+  const nextGradeCount = t.category === 'permanent' ? t.gradeCount + 1 : t.gradeCount;
+  const gradeRate = t.gradeRate || (nextGradeCount > 0 ? Math.round(t.basicSalary / 30) : 0);
+  const gradeAmount = nextGradeCount * gradeRate;
+
+  return calculateTeacherPayroll({
+    ...t,
+    id: t.id.replace('t-', 't-2083-'),
+    gradeCount: nextGradeCount,
+    gradeRate,
+    gradeAmount,
+    koshThap: t.category === 'permanent' ? Math.round((t.basicSalary + gradeAmount) * 0.10 * 100) / 100 : 0,
+    koshKatti: t.category === 'permanent' ? Math.round((t.basicSalary + gradeAmount) * 0.20 * 100) / 100 : 0,
+  }, 3, true, {
+    includeDashain: true,
+    includePoshak: false
+  });
+});
 
 // Generate 2081/82 (Prior Year: with 1 less grade for teachers who had grades > 0)
 export const initialTeachers2081: TeacherRecord[] = rawTeachers2082.map(t => {
@@ -435,23 +538,22 @@ export const initialTeachers2080: TeacherRecord[] = rawTeachers2082.map(t => {
 export const initialFiscalYears: FiscalYearPayroll[] = [
   {
     fiscalYear: '२०८२/८३',
-    periodTitle: '२०८२ साल वैशाखदेखि २०८३ असार सम्मको तलबी भर्पाई',
+    periodTitle: '२०८२ साल साउन १ देखि २०८३ असार मसान्त सम्मको तलबी भर्पाई',
     monthsCount: 3,
+    includeDashain: true,
+    includePoshak: false,
+    selectedQuarter: 'first',
     teachers: initialTeachers2082,
-    notes: 'फोटो अनुसारको मूल तलबी भर्पाई विवरण'
+    notes: 'आ.व. २०८२/८३ (साउन १ - असार मसान्त) को मूल तलबी भर्पाई'
   },
   {
-    fiscalYear: '२०८१/८२',
-    periodTitle: '२०८१ साल वैशाखदेखि २०८२ असार सम्मको तलबी भर्पाई',
+    fiscalYear: '२०८३/८४',
+    periodTitle: '२०८३ साल साउन १ देखि २०८४ असार मसान्त सम्मको तलबी भर्पाई',
     monthsCount: 3,
-    teachers: initialTeachers2081,
-    notes: 'आ.व. २०८१/८२ को त्रैमासिक तलबी भर्पाई (१ ग्रेड घटी)'
-  },
-  {
-    fiscalYear: '२०८०/८१',
-    periodTitle: '२०८० साल वैशाखदेखि २०८१ असार सम्मको तलबी भर्पाई',
-    monthsCount: 3,
-    teachers: initialTeachers2080,
-    notes: 'आ.व. २०८०/८१ को त्रैमासिक तलबी भर्पाई (२ ग्रेड घटी)'
+    includeDashain: true,
+    includePoshak: false,
+    selectedQuarter: 'first',
+    teachers: initialTeachers2083,
+    notes: 'आ.व. २०८३/८४ (साउन १ - असार मसान्त) नयाँ तलब/ग्रेड समायोजन सहित'
   }
 ];

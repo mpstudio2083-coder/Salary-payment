@@ -20,10 +20,19 @@ export interface TeacherRecord {
   citKatti: number; // सा. क. कोष / ना. ल. कोष कट्टी
   otherKatti?: number; // अन्य कट्टी
   
-  // Extra / Festival Allowances (दसैं तथा पोशाक भत्ता)
-  dashainBhatta?: number; // दसैं भत्ता (साउनमा भुक्तानी/जोडिने)
-  poshakBhatta?: number; // पोशाक भत्ता (चैतमा भुक्तानी/जोडिने)
+  // Extra / Festival Allowances (दसैं तथा पोशाक भत्ता - म्यानुअल प्रविष्टि)
+  dashainBhatta?: number; // दसैं भत्ता (म्यानुअल प्रविष्टि - साउन भुक्तानी)
+  poshakBhatta?: number; // पोशाक भत्ता (म्यानुअल प्रविष्टि - चैत भुक्तानी)
   dashainPoshakBhatta?: number; // legacy backwards compatibility
+
+  // Baisakh Grade Change (साउन-चैत ९ महिना र वैशाख-असार ३ महिना ग्रेड विभाजन)
+  gradeCountBaisakh?: number; // वैशाख १ देखिको नयाँ ग्रेड संख्या
+  gradeAmountBaisakh?: number; // वैशाख १ देखिको नयाँ ग्रेड रकम
+
+  // Partial Month & Days payment fields (उदा. १ महिना १७ दिन)
+  customMonths?: number; // e.g. 1
+  customDays?: number; // e.g. 17
+  customDurationLabel?: string; // e.g. "१ महिना १७ दिन"
   
   // Computed fields (can be auto-calculated or stored)
   monthlyGross?: number; // एक महिनाको जम्मा
@@ -131,7 +140,10 @@ export interface FiscalYearPayroll {
   specialAllowanceSettings?: SpecialAllowanceSettings;
   includeDashain?: boolean; // साउनमा दसैं भत्ता त्रैमासिक जम्मामा जोड्ने वा नजोड्ने
   includePoshak?: boolean; // चैतमा पोशाक भत्ता त्रैमासिक जम्मामा जोड्ने वा नजोड्ने
-  selectedQuarter?: 'first' | 'second' | 'third' | 'fourth' | 'custom' | 'yearly';
+  selectedQuarter?: 'first' | 'second' | 'third' | 'fourth' | 'custom' | 'yearly' | 'nine_months' | 'three_months' | 'split_9_3';
+  customPeriodMonths?: number;
+  customPeriodDays?: number;
+  customPeriodLabel?: string;
 }
 
 export interface SchoolInfo {

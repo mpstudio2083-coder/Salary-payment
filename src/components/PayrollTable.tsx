@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Check, Search, Filter, Gift, Shirt, Calendar, Info } from 'lucide-react';
+import { Edit2, Trash2, Check, Search, Filter, Gift, Shirt, Calendar, Info, Calculator, Sparkles, Clock } from 'lucide-react';
 import { TeacherRecord, SchoolInfo } from '../types';
 import { formatNepaliCurrency, toNepaliNumber } from '../utils/nepaliNumber';
 import { calculateGrandTotals } from '../utils/calculations';
@@ -16,9 +16,11 @@ interface PayrollTableProps {
   selectedQuarter?: string;
   onToggleDashain?: () => void;
   onTogglePoshak?: () => void;
-  onSelectQuarter?: (quarter: 'first' | 'second' | 'third' | 'fourth' | 'yearly') => void;
+  onSelectQuarter?: (quarter: 'first' | 'second' | 'third' | 'fourth' | 'yearly' | 'nine_months' | 'three_months') => void;
   onEditTeacher: (teacher: TeacherRecord) => void;
   onDeleteTeacher: (id: string) => void;
+  onOpenPartialSalaryModal?: (teacherId?: string) => void;
+  onOpenGradeSplitView?: () => void;
 }
 
 export const PayrollTable: React.FC<PayrollTableProps> = ({
@@ -35,7 +37,9 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
   onTogglePoshak,
   onSelectQuarter,
   onEditTeacher,
-  onDeleteTeacher
+  onDeleteTeacher,
+  onOpenPartialSalaryModal,
+  onOpenGradeSplitView
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDesignation, setFilterDesignation] = useState('ALL');
@@ -122,6 +126,28 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                   चौथो (वैशाख - असार)
                 </button>
                 <button
+                  onClick={() => onSelectQuarter('nine_months')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded ${
+                    selectedQuarter === 'nine_months' 
+                      ? 'bg-amber-600 text-white shadow-2xs' 
+                      : 'text-stone-700 hover:bg-stone-200'
+                  }`}
+                  title="साउनदेखि चैतसम्म: ९ महिना (पुरानो ग्रेड)"
+                >
+                  ९ महिना (साउन - चैत)
+                </button>
+                <button
+                  onClick={() => onSelectQuarter('three_months')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded ${
+                    selectedQuarter === 'three_months' 
+                      ? 'bg-amber-600 text-white shadow-2xs' 
+                      : 'text-stone-700 hover:bg-stone-200'
+                  }`}
+                  title="वैशाखदेखि असारसम्म: ३ महिना (नयाँ ग्रेड)"
+                >
+                  ३ महिना (वैशाख - असार)
+                </button>
+                <button
                   onClick={() => onSelectQuarter('yearly')}
                   className={`px-2.5 py-1 text-xs font-semibold rounded ${
                     selectedQuarter === 'yearly' 
@@ -133,6 +159,33 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                   वार्षिक (१२ महिना)
                 </button>
               </div>
+            )}
+          </div>
+
+          {/* Quick Action Tools: 9/3 Split & Partial Day Calculator */}
+          <div className="flex flex-wrap items-center gap-2">
+            {onOpenGradeSplitView && (
+              <button
+                type="button"
+                onClick={onOpenGradeSplitView}
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 shadow-2xs transition-colors"
+                title="साउन-चैत ९ महिना र वैशाख-असार ३ महिना ग्रेड परिवर्तन वार्षिक भर्पाई"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                <span>९ र ३ महिना ग्रेड विभाजन तालिका</span>
+              </button>
+            )}
+
+            {onOpenPartialSalaryModal && (
+              <button
+                type="button"
+                onClick={() => onOpenPartialSalaryModal()}
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 shadow-2xs transition-colors"
+                title="१ महिना १७ दिन वा आंशिक अवधिको तलब हिसाब क्याल्कुलेटर"
+              >
+                <Calculator className="w-3.5 h-3.5 text-blue-700" />
+                <span>१ महिना १७ दिन क्याल्कुलेटर</span>
+              </button>
             )}
           </div>
 
@@ -360,7 +413,7 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                 const isEven = index % 2 === 0;
                 return (
                   <tr
-                    key={teacher.id}
+                    key={`teacher-${teacher.id}-${index}`}
                     className={`border-b border-stone-200 hover:bg-amber-50/50 transition-colors ${
                       isEven ? 'bg-white' : 'bg-stone-50/40'
                     }`}
@@ -400,14 +453,14 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                       {teacher.gradeAmount > 0 ? format(teacher.gradeAmount) : '-'}
                     </td>
 
-                    {/* Kosh Thap */}
+                    {/* Kosh Thap: Only for permanent teachers */}
                     <td className="border border-stone-300 px-2 py-1.5 text-right font-mono bg-emerald-50/20">
-                      {teacher.koshThap > 0 ? format(teacher.koshThap) : '-'}
+                      {teacher.category === 'permanent' && teacher.koshThap > 0 ? format(teacher.koshThap) : '-'}
                     </td>
 
-                    {/* Bima Thap */}
+                    {/* Bima Thap: Only for permanent teachers */}
                     <td className="border border-stone-300 px-2 py-1.5 text-right font-mono bg-emerald-50/20">
-                      {teacher.bimaThap > 0 ? format(teacher.bimaThap) : '-'}
+                      {teacher.category === 'permanent' && teacher.bimaThap > 0 ? format(teacher.bimaThap) : '-'}
                     </td>
 
                     {/* PraA Bhatta */}
@@ -445,14 +498,14 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                       {format(teacher.periodGross)}
                     </td>
 
-                    {/* Kosh Katti */}
+                    {/* Kosh Katti: Only for permanent teachers */}
                     <td className="border border-stone-300 px-2 py-1.5 text-right font-mono bg-rose-50/20">
-                      {teacher.koshKatti > 0 ? format(teacher.koshKatti) : '-'}
+                      {teacher.category === 'permanent' && teacher.koshKatti > 0 ? format(teacher.koshKatti) : '-'}
                     </td>
 
-                    {/* Bima Katti */}
+                    {/* Bima Katti: Only for permanent teachers */}
                     <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-rose-50/20">
-                      {teacher.bimaKatti > 0 ? format(teacher.bimaKatti) : '-'}
+                      {teacher.category === 'permanent' && teacher.bimaKatti > 0 ? format(teacher.bimaKatti) : '-'}
                     </td>
 
                     {/* CIT Katti */}
@@ -504,6 +557,15 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                     {/* Actions */}
                     <td className="border border-stone-300 px-2 py-1.5 text-center">
                       <div className="flex items-center justify-center gap-1">
+                        {onOpenPartialSalaryModal && (
+                          <button
+                            onClick={() => onOpenPartialSalaryModal(teacher.id)}
+                            title="१ महिना १७ दिन वा आंशिक दिनको तलब हिसाब क्याल्कुलेटर"
+                            className="p-1 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded"
+                          >
+                            <Calculator className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => onEditTeacher(teacher)}
                           title="सम्पादन गर्नुहोस्"

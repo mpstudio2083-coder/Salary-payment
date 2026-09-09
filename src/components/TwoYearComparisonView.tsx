@@ -33,18 +33,24 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
   useNepaliDigits,
   onOpenTeacherModalForYear
 }) => {
-  // Select Year 1 and Year 2
+  // Select Year 1 (२०८२/८३) and Year 2 (२०८३/८४) by default
   const availableYearNames = fiscalYears.map(y => y.fiscalYear);
   const [year1Name, setYear1Name] = useState<string>(
-    availableYearNames.find(y => y.includes('२०८१')) || availableYearNames[1] || availableYearNames[0] || '२०८१/८२'
+    availableYearNames.find(y => y.includes('२०८२')) || availableYearNames[0] || '२०८२/८३'
   );
   const [year2Name, setYear2Name] = useState<string>(
-    availableYearNames.find(y => y.includes('२०८२')) || availableYearNames[0] || '२०८२/८३'
+    availableYearNames.find(y => y.includes('२०८३')) || availableYearNames[1] || '२०८३/८४'
   );
 
   const [searchQuery, setSearchQuery] = useState('');
   const [inlineEditMode, setInlineEditMode] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  // Modal state for Year 2 salary revision / bulk adjustment
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+  const [revisionPercent, setRevisionPercent] = useState<number>(0);
+  const [revisionFlatAmount, setRevisionFlatAmount] = useState<number>(0);
+  const [revisionAddGrade, setRevisionAddGrade] = useState<boolean>(true);
 
   const year1Data = fiscalYears.find(y => y.fiscalYear === year1Name) || fiscalYears[0];
   const year2Data = fiscalYears.find(y => y.fiscalYear === year2Name) || fiscalYears[1] || fiscalYears[0];
@@ -153,6 +159,90 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
       setStatusMessage(`आ.व. ${year1Name} बाट ${year2Name} मा शिक्षक डाटा सफलतापूर्वक प्रतिलिपि गरियो!`);
       setTimeout(() => setStatusMessage(null), 4000);
     }
+  };
+
+  // Add an individual teacher into Year 2
+  const handleAddTeacherToYear2 = (teacher: TeacherRecord) => {
+    if (!year2Data) return;
+    const isPerm = teacher.category === 'permanent';
+    const gradeCount = isPerm ? teacher.gradeCount + 1 : teacher.gradeCount;
+    const gradeRate = teacher.gradeRate || Math.round(teacher.basicSalary / 30);
+    const gradeAmount = gradeCount * gradeRate;
+
+    const newTeacher: TeacherRecord = {
+      ...teacher,
+      id: `t-${year2Name.replace(/[^0-9]/g, '')}-${Date.now()}`,
+      gradeCount,
+      gradeRate,
+      gradeAmount
+    };
+
+    const calculated = calculateTeacherPayroll(newTeacher, year2Data.monthsCount, true, {
+      includeDashain: year2Data.includeDashain ?? true,
+      includePoshak: year2Data.includePoshak ?? true
+    });
+
+    const updatedYears = fiscalYears.map(yr => {
+      if (yr.fiscalYear === year2Name) {
+        return {
+          ...yr,
+          teachers: [...yr.teachers, calculated].sort((a, b) => a.sn - b.sn)
+        };
+      }
+      return yr;
+    });
+
+    onUpdateFiscalYears(updatedYears);
+    setStatusMessage(`"${teacher.name}" लाई आ.व. ${year2Name} मा सफलतापूर्वक थपियो!`);
+    setTimeout(() => setStatusMessage(null), 3000);
+  };
+
+  // Bulk revision for Year 2 (Percentage increase / Flat increase / Grade)
+  const handleApplyRevisionYear2 = () => {
+    if (!year2Data) return;
+    const updatedTeachers = year2Data.teachers.map(t => {
+      let basic = t.basicSalary;
+      if (revisionPercent > 0) {
+        basic = Math.round(basic * (1 + revisionPercent / 100));
+      }
+      if (revisionFlatAmount > 0) {
+        basic += revisionFlatAmount;
+      }
+      const isPerm = t.category === 'permanent';
+      const gradeCount = (revisionAddGrade && isPerm) ? t.gradeCount + 1 : t.gradeCount;
+      const gradeRate = Math.round(basic / 30);
+      const gradeAmount = gradeCount * gradeRate;
+
+      const updated = {
+        ...t,
+        basicSalary: basic,
+        gradeCount,
+        gradeRate,
+        gradeAmount,
+        koshThap: isPerm ? Math.round((basic + gradeAmount) * 0.10 * 100) / 100 : 0,
+        koshKatti: isPerm ? Math.round((basic + gradeAmount) * 0.20 * 100) / 100 : 0
+      };
+
+      return calculateTeacherPayroll(updated, year2Data.monthsCount, true, {
+        includeDashain: year2Data.includeDashain ?? true,
+        includePoshak: year2Data.includePoshak ?? true
+      });
+    });
+
+    const updatedYears = fiscalYears.map(yr => {
+      if (yr.fiscalYear === year2Name) {
+        return {
+          ...yr,
+          teachers: updatedTeachers
+        };
+      }
+      return yr;
+    });
+
+    onUpdateFiscalYears(updatedYears);
+    setIsRevisionModalOpen(false);
+    setStatusMessage(`आ.व. ${year2Name} मा नयाँ तलब रकम तथा समायोजन सफलतापूर्वक लागू भयो!`);
+    setTimeout(() => setStatusMessage(null), 4000);
   };
 
   // Export 2-Year Comparison as CSV
@@ -295,14 +385,36 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
         {/* Quick Operations Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3">
           <div className="flex flex-wrap items-center gap-2">
+            {/* Add New Teacher to Year 2 */}
+            {onOpenTeacherModalForYear && (
+              <button
+                onClick={() => onOpenTeacherModalForYear(year2Name)}
+                title={`आ.व. ${year2Name} मा नयाँ शिक्षकको रेकर्ड थप्नुहोस्`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg transition-colors shadow-2xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ {year2Name} मा नयाँ शिक्षक थप्नुहोस्</span>
+              </button>
+            )}
+
+            {/* Salary Revision Modal Trigger for Year 2 */}
+            <button
+              onClick={() => setIsRevisionModalOpen(true)}
+              title={`${year2Name} को तलब वृद्धि प्रतिशत वा समायोजन गर्नुहोस्`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg transition-colors shadow-2xs"
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-amber-700" />
+              <span>{year2Name} तलब वृद्धि / समायोजन (%)</span>
+            </button>
+
             {/* Copy Year 1 -> Year 2 with +1 Grade */}
             <button
               onClick={() => handleCopyYear1ToYear2(true)}
               title="वर्ष १ बाट सबै शिक्षक वर्ष २ मा सारी १ ग्रेड थप गर्नुहोस्"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-lg transition-colors"
             >
               <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-              <span>वर्ष १ बाट वर्ष २ मा +१ ग्रेड वृद्धि सहित प्रतिलिपि</span>
+              <span>वर्ष १ बाट वर्ष २ मा +१ ग्रेड सहित प्रतिलिपि</span>
             </button>
 
             {/* Search Box */}
@@ -313,7 +425,7 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
                 placeholder="शिक्षकको नाम खोज्नुहोस्..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1 text-xs bg-stone-50 border border-stone-300 rounded focus:bg-white focus:ring-1 focus:ring-blue-500 w-48 sm:w-56"
+                className="pl-8 pr-3 py-1 text-xs bg-stone-50 border border-stone-300 rounded-lg focus:bg-white focus:ring-1 focus:ring-blue-500 w-48 sm:w-56"
               />
             </div>
           </div>
@@ -436,6 +548,11 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
                 {/* Difference / Increment Group */}
                 <th colSpan={2} className="border border-stone-300 px-2 py-1.5 text-center font-extrabold bg-purple-100/80 text-purple-950">
                   फरक / वृद्धि रकम
+                </th>
+
+                {/* Action Column */}
+                <th rowSpan={2} className="border border-stone-300 px-2 py-2 text-center font-bold bg-stone-200 text-stone-900 min-w-[110px] whitespace-nowrap">
+                  कार्य (Action)
                 </th>
               </tr>
 
@@ -603,6 +720,29 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
                     }`}>
                       {periodNetDiff !== 0 ? `${periodNetDiff > 0 ? '+' : ''}${format(periodNetDiff)}` : '-'}
                     </td>
+
+                    {/* Row Action Cell */}
+                    <td className="border border-stone-300 px-2 py-1.5 text-center bg-stone-50/50 whitespace-nowrap">
+                      {t2 ? (
+                        <button
+                          onClick={() => onOpenTeacherModalForYear && onOpenTeacherModalForYear(year2Name, t2)}
+                          title={`${year2Name} मा ${item.name} को तलब रकम सम्पादन गर्नुहोस्`}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded shadow-2xs transition-colors"
+                        >
+                          <Edit3 className="w-3 h-3 text-emerald-600" />
+                          <span>{year2Name} सम्पादन</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleAddTeacherToYear2(t1!)}
+                          title={`${year2Name} मा ${item.name} लाई थप्नुहोस्`}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-amber-600 hover:bg-amber-700 text-white rounded shadow-2xs transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>+ {year2Name} मा थप्नुहोस्</span>
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -662,11 +802,118 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
                 <td className="border border-stone-300 px-2.5 py-2 text-right font-mono font-black text-purple-950 bg-purple-200/90">
                   {netDiff >= 0 ? '+' : ''}{format(netDiff)}
                 </td>
+
+                {/* Footer Action Column */}
+                <td className="border border-stone-300 px-2 py-2 text-center font-bold bg-stone-100 text-stone-400">
+                  -
+                </td>
               </tr>
             </tfoot>
           </table>
         </div>
       </div>
+
+      {/* Year 2 (२०८३/८४) Salary Revision Modal */}
+      {isRevisionModalOpen && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full border border-stone-300 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-amber-600 text-white px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-amber-200" />
+                <h3 className="font-bold text-base">आ.व. {year2Name} तलब वृद्धि तथा समायोजन</h3>
+              </div>
+              <button
+                onClick={() => setIsRevisionModalOpen(false)}
+                className="text-amber-100 hover:text-white p-1 rounded hover:bg-amber-700/50"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-stone-600">
+                यहाँबाट आ.व. <b>{year2Name}</b> का सबै शिक्षकहरूको तलब एकमुष्ट प्रतिशत वा रकमले वृद्धि गर्न सक्नुहुन्छ। 
+                यसले बेसिक तलब, ग्रेड रकम, र स्थायी शिक्षकको कोष तथा बीमा स्वतः गणना गर्नेछ (अस्थायी शिक्षकको कोष कट्टी हुँदैन)।
+              </p>
+
+              {/* Percentage Increase */}
+              <div className="bg-stone-50 p-3 rounded-lg border border-stone-200">
+                <label className="block text-xs font-bold text-stone-800 mb-1">
+                  १. बेसिक तलब वृद्धि प्रतिशत (%)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={revisionPercent}
+                    onChange={(e) => setRevisionPercent(parseFloat(e.target.value) || 0)}
+                    className="w-24 text-sm px-3 py-1.5 bg-white border border-stone-300 rounded font-mono font-bold"
+                    placeholder="०"
+                  />
+                  <span className="text-xs text-stone-600">% वृद्धि (जस्तै: ५% वा १०%)</span>
+                </div>
+              </div>
+
+              {/* Flat Amount Increase */}
+              <div className="bg-stone-50 p-3 rounded-lg border border-stone-200">
+                <label className="block text-xs font-bold text-stone-800 mb-1">
+                  २. थप मासिक एकमुष्ट रकम (रु.)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    step={100}
+                    value={revisionFlatAmount}
+                    onChange={(e) => setRevisionFlatAmount(parseFloat(e.target.value) || 0)}
+                    className="w-32 text-sm px-3 py-1.5 bg-white border border-stone-300 rounded font-mono font-bold"
+                    placeholder="०"
+                  />
+                  <span className="text-xs text-stone-600">रु. प्रत्येक शिक्षकको बेसिकमा थपिने</span>
+                </div>
+              </div>
+
+              {/* Add Grade Checkbox */}
+              <div className="flex items-start gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="chk-revision-grade"
+                  checked={revisionAddGrade}
+                  onChange={(e) => setRevisionAddGrade(e.target.checked)}
+                  className="mt-0.5 rounded text-amber-600 focus:ring-amber-500"
+                />
+                <label htmlFor="chk-revision-grade" className="text-xs text-stone-700">
+                  <span className="font-bold text-stone-900">
+                    स्थायी शिक्षकको १ ग्रेड वृद्धि थप गर्ने (Add +1 Grade)
+                  </span>
+                  <p className="text-[11px] text-stone-500">
+                    स्थायी शिक्षकको सेवा वर्ष अनुसार स्वतः १ ग्रेड थप गरी नयाँ ग्रेड दर अनुसार गणना हुनेछ।
+                  </p>
+                </label>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setIsRevisionModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-stone-600 hover:bg-stone-100 rounded"
+                >
+                  रद्द गर्नुहोस्
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyRevisionYear2}
+                  className="px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded shadow-xs"
+                >
+                  समायोजन लागू गर्नुहोस्
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

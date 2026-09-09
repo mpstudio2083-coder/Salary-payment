@@ -161,8 +161,8 @@ export const PrintView: React.FC<PrintViewProps> = ({
             </thead>
 
             <tbody>
-              {teachers.map((t) => (
-                <tr key={t.id} className="border-b border-black">
+              {teachers.map((t, idx) => (
+                <tr key={`print-${t.id}-${idx}`} className="border-b border-black">
                   <td className="border border-black p-1 text-center">{num(t.sn)}</td>
                   <td className="border border-black p-1 font-semibold whitespace-nowrap">{t.name}</td>
                   <td className="border border-black p-1 whitespace-nowrap">{t.designation}</td>
@@ -170,8 +170,8 @@ export const PrintView: React.FC<PrintViewProps> = ({
                   <td className="border border-black p-0.5 text-center">{t.gradeCount > 0 ? num(t.gradeCount) : ''}</td>
                   <td className="border border-black p-0.5 text-right">{t.gradeRate > 0 ? format(t.gradeRate) : ''}</td>
                   <td className="border border-black p-0.5 text-right">{t.gradeAmount > 0 ? format(t.gradeAmount) : ''}</td>
-                  <td className="border border-black p-1 text-right">{t.koshThap > 0 ? format(t.koshThap) : ''}</td>
-                  <td className="border border-black p-1 text-right">{t.bimaThap > 0 ? format(t.bimaThap) : ''}</td>
+                  <td className="border border-black p-1 text-right">{t.category === 'permanent' && t.koshThap > 0 ? format(t.koshThap) : ''}</td>
+                  <td className="border border-black p-1 text-right">{t.category === 'permanent' && t.bimaThap > 0 ? format(t.bimaThap) : ''}</td>
                   <td className="border border-black p-0.5 text-right">{t.praABhatta > 0 ? format(t.praABhatta) : ''}</td>
                   <td className="border border-black p-0.5 text-right">{t.mahangiBhatta > 0 ? format(t.mahangiBhatta) : ''}</td>
                   <td className="border border-black p-0.5 text-right">{t.anyaBhatta > 0 ? format(t.anyaBhatta) : ''}</td>
@@ -179,8 +179,8 @@ export const PrintView: React.FC<PrintViewProps> = ({
                   <td className="border border-black p-1 text-right">{t.dashainBhatta && t.dashainBhatta > 0 ? format(t.dashainBhatta) : ''}</td>
                   <td className="border border-black p-1 text-right">{t.poshakBhatta && t.poshakBhatta > 0 ? format(t.poshakBhatta) : ''}</td>
                   <td className="border border-black p-1 text-right font-bold">{format(t.periodGross)}</td>
-                  <td className="border border-black p-0.5 text-right">{t.koshKatti > 0 ? format(t.koshKatti) : ''}</td>
-                  <td className="border border-black p-0.5 text-right">{t.bimaKatti > 0 ? format(t.bimaKatti) : ''}</td>
+                  <td className="border border-black p-0.5 text-right">{t.category === 'permanent' && t.koshKatti > 0 ? format(t.koshKatti) : ''}</td>
+                  <td className="border border-black p-0.5 text-right">{t.category === 'permanent' && t.bimaKatti > 0 ? format(t.bimaKatti) : ''}</td>
                   <td className="border border-black p-0.5 text-right">{t.citKatti > 0 ? format(t.citKatti) : ''}</td>
                   <td className="border border-black p-0.5 text-right">{format(t.monthlyKatti)}</td>
                   <td className="border border-black p-0.5 text-right font-semibold">{format(t.periodKatti)}</td>

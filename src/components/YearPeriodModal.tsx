@@ -25,9 +25,10 @@ export const YearPeriodModal: React.FC<YearPeriodModalProps> = ({
   onUpdatePeriodTitle
 }) => {
   const [newFiscalYear, setNewFiscalYear] = useState('२०८३/८४');
-  const [newPeriodTitle, setNewPeriodTitle] = useState('२०८३ साल वैशाखदेखि २०८४ असार सम्मको तलबी भर्पाई');
+  const [newPeriodTitle, setNewPeriodTitle] = useState('२०८३ साल साउनदेखि २०८४ असार सम्मको तलबी भर्पाई');
   const [newMonthsCount, setNewMonthsCount] = useState(3);
   const [incrementGrades, setIncrementGrades] = useState(true);
+  const [salaryIncreasePercent, setSalaryIncreasePercent] = useState<number>(0);
 
   const [editTitle, setEditTitle] = useState(currentYear.periodTitle);
   const [editNotes, setEditNotes] = useState(currentYear.notes || '');
@@ -46,23 +47,27 @@ export const YearPeriodModal: React.FC<YearPeriodModalProps> = ({
       return;
     }
 
-    // Clone teachers from current year
+    // Clone teachers from current year with optional salary adjustment & grade increment
     const clonedTeachers: TeacherRecord[] = currentYear.teachers.map(t => {
+      const multiplier = salaryIncreasePercent > 0 ? (1 + salaryIncreasePercent / 100) : 1;
+      const newBasicSalary = Math.round(t.basicSalary * multiplier);
+
       const newGradeCount = (incrementGrades && t.category === 'permanent') 
         ? t.gradeCount + 1 
         : t.gradeCount;
       
-      const gradeRate = t.gradeRate || (newGradeCount > 0 ? Math.round(t.basicSalary / 30) : 0);
+      const gradeRate = Math.round(newBasicSalary / 30);
       const gradeAmount = newGradeCount * gradeRate;
 
       return calculateTeacherPayroll({
         ...t,
         id: `t-${Date.now()}-${t.sn}`,
+        basicSalary: newBasicSalary,
         gradeCount: newGradeCount,
         gradeRate,
         gradeAmount,
-        koshThap: t.category === 'permanent' ? Math.round((t.basicSalary + gradeAmount) * 0.10 * 100) / 100 : 0,
-        koshKatti: t.category === 'permanent' ? Math.round((t.basicSalary + gradeAmount) * 0.20 * 100) / 100 : 0,
+        koshThap: t.category === 'permanent' ? Math.round((newBasicSalary + gradeAmount) * 0.10 * 100) / 100 : 0,
+        koshKatti: t.category === 'permanent' ? Math.round((newBasicSalary + gradeAmount) * 0.20 * 100) / 100 : 0,
       }, newMonthsCount, true);
     });
 
@@ -71,7 +76,7 @@ export const YearPeriodModal: React.FC<YearPeriodModalProps> = ({
       periodTitle: newPeriodTitle.trim(),
       monthsCount: newMonthsCount,
       teachers: clonedTeachers,
-      notes: `${currentYear.fiscalYear} बाट ${incrementGrades ? '१ ग्रेड थपेर' : ''} सारिएको नयाँ भर्पाई`
+      notes: `${currentYear.fiscalYear} बाट ${incrementGrades ? '१ ग्रेड थपेर' : ''} ${salaryIncreasePercent > 0 ? `${salaryIncreasePercent}% तलब वृद्धि गरी` : ''} सारिएको नयाँ भर्पाई`
     };
 
     onSaveNewYear(newEntry);
@@ -261,6 +266,29 @@ export const YearPeriodModal: React.FC<YearPeriodModalProps> = ({
                     required
                   />
                 </div>
+              </div>
+
+              {/* Salary Increase Percent Option */}
+              <div className="bg-white p-3 rounded-md border border-emerald-300">
+                <label className="block text-xs font-bold text-stone-800 mb-1">
+                  तलब स्केल वृद्धि प्रतिशत (%) - ऐच्छिक
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={salaryIncreasePercent}
+                    onChange={(e) => setSalaryIncreasePercent(parseFloat(e.target.value) || 0)}
+                    className="w-24 text-xs px-3 py-1.5 bg-stone-50 border border-stone-300 rounded font-mono font-bold"
+                    placeholder="०"
+                  />
+                  <span className="text-xs text-stone-600 font-medium">% बेसिक तलब बढाएर नयाँ वर्ष बनाउने</span>
+                </div>
+                <p className="text-[11px] text-stone-500 mt-1">
+                  यदि २०८३ सालबाट नयाँ तलब स्केल लागू भएको छ भने प्रतिशत प्रविष्टि गर्नुहोस् (जस्तै ५% वा १०%), सबै शिक्षकको तलब स्वतः समायोजन हुनेछ।
+                </p>
               </div>
 
               {/* Automatic +1 Grade Increment Checkbox */}

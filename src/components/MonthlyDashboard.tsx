@@ -329,6 +329,13 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({
                       👔 पोशाक भत्ता
                     </span>
                   )}
+                  {(month === 'वैशाख' || month === 'जेठ' || month === 'असार') && !isDashain && !isPoshak && (
+                    <span className={`block text-[9px] mt-0.5 rounded px-1 font-bold ${
+                      isSelected ? 'bg-amber-700 text-white' : 'text-amber-800 bg-amber-100'
+                    }`}>
+                      ⭐ नयाँ ग्रेड (३ महिना)
+                    </span>
+                  )}
                   {!isDashain && !isPoshak && (
                     <span className={`block text-[9px] mt-0.5 ${isSelected ? 'text-blue-100' : 'text-stone-400'}`}>
                       नियमित
@@ -554,7 +561,7 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({
                   const isEven = idx % 2 === 0;
                   return (
                     <tr
-                      key={m.teacherId}
+                      key={`month-rec-${m.teacherId}-${idx}`}
                       className={`border-b border-stone-200 hover:bg-amber-50/40 transition-colors ${
                         isEven ? 'bg-white' : 'bg-stone-50/30'
                       }`}
@@ -575,10 +582,10 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({
                         {m.gradeAmount > 0 ? format(m.gradeAmount) : '-'}
                       </td>
                       <td className="border border-stone-300 px-2 py-1.5 text-right font-mono bg-emerald-50/20">
-                        {m.koshThap > 0 ? format(m.koshThap) : '-'}
+                        {m.category === 'permanent' && m.koshThap > 0 ? format(m.koshThap) : '-'}
                       </td>
                       <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-emerald-50/20">
-                        {m.bimaThap > 0 ? format(m.bimaThap) : '-'}
+                        {m.category === 'permanent' && m.bimaThap > 0 ? format(m.bimaThap) : '-'}
                       </td>
                       <td className="border border-stone-300 px-2 py-1.5 text-right font-mono bg-amber-50/20">
                         {format(m.praABhatta + m.mahangiBhatta + m.anyaBhatta)}
@@ -608,10 +615,10 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({
 
                       {/* Deductions */}
                       <td className="border border-stone-300 px-2 py-1.5 text-right font-mono bg-rose-50/20 text-rose-900">
-                        {m.koshKatti > 0 ? format(m.koshKatti) : '-'}
+                        {m.category === 'permanent' && m.koshKatti > 0 ? format(m.koshKatti) : '-'}
                       </td>
                       <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-rose-50/20 text-rose-900">
-                        {m.bimaKatti > 0 ? format(m.bimaKatti) : '-'}
+                        {m.category === 'permanent' && m.bimaKatti > 0 ? format(m.bimaKatti) : '-'}
                       </td>
                       <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-rose-50/20 text-rose-900">
                         {m.citKatti > 0 ? format(m.citKatti) : '-'}

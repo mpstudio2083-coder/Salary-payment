@@ -134,15 +134,32 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       bima = 0;
     }
 
+    const isPerm = category === 'permanent';
     const updated = {
       ...formData,
       designation: desig,
       category,
       basicSalary: basic,
-      bimaThap: bima,
+      bimaThap: isPerm ? bima : 0,
+      bimaKatti: isPerm ? 800 : 0,
+      koshThap: isPerm ? formData.koshThap : 0,
+      koshKatti: isPerm ? formData.koshKatti : 0,
       gradeRate: Math.round(basic / 30)
     };
 
+    setFormData(calculateTeacherPayroll(updated, monthsCount, autoCalculateFields));
+  };
+
+  const handleCategoryChange = (newCat: TeacherRecord['category']) => {
+    const isPerm = newCat === 'permanent';
+    const updated = {
+      ...formData,
+      category: newCat,
+      koshThap: isPerm ? formData.koshThap : 0,
+      koshKatti: isPerm ? formData.koshKatti : 0,
+      bimaThap: isPerm ? (formData.bimaThap || 400) : 0,
+      bimaKatti: isPerm ? (formData.bimaKatti || 800) : 0
+    };
     setFormData(calculateTeacherPayroll(updated, monthsCount, autoCalculateFields));
   };
 
@@ -252,18 +269,18 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
 
               <div>
                 <label className="block text-xs font-medium text-stone-700 mb-1">
-                  प्रकार
+                  प्रकार (Category)
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                  className="w-full text-xs px-3 py-2 border border-stone-300 rounded focus:ring-1 focus:ring-blue-500 bg-white"
+                  onChange={(e) => handleCategoryChange(e.target.value as any)}
+                  className="w-full text-xs px-3 py-2 border border-stone-300 rounded focus:ring-1 focus:ring-blue-500 bg-white font-medium"
                 >
-                  <option value="permanent">स्थायी (कोष + बिमा लागू हुने)</option>
-                  <option value="contract">करार / अस्थायी</option>
-                  <option value="relief">राहत</option>
-                  <option value="municipal">नगर शिक्षक</option>
-                  <option value="staff">कर्मचारी / सहयोगी</option>
+                  <option value="permanent">स्थायी (क. कोष + बिमा लागू हुने)</option>
+                  <option value="contract">करार / अस्थायी (क. कोष हुँदैन)</option>
+                  <option value="relief">राहत (क. कोष हुँदैन)</option>
+                  <option value="municipal">नगर शिक्षक (क. कोष हुँदैन)</option>
+                  <option value="staff">कर्मचारी / सहयोगी (क. कोष हुँदैन)</option>
                 </select>
               </div>
             </div>
@@ -331,14 +348,20 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
               <div>
                 <label className="block text-xs font-medium text-stone-700 mb-1">
                   क. कोष थप (१०%)
+                  {formData.category !== 'permanent' && (
+                    <span className="text-[10px] text-rose-600 block font-normal">लागू हुँदैन (स्थायी मात्र)</span>
+                  )}
                 </label>
                 <input
                   type="number"
-                  readOnly={autoCalculateFields}
-                  value={formData.koshThap}
+                  disabled={formData.category !== 'permanent'}
+                  readOnly={autoCalculateFields || formData.category !== 'permanent'}
+                  value={formData.category === 'permanent' ? formData.koshThap : 0}
                   onChange={(e) => handleNumberChange('koshThap', e.target.value)}
                   className={`w-full text-xs px-3 py-2 border border-stone-300 rounded font-mono font-bold ${
-                    autoCalculateFields ? 'bg-stone-100 text-stone-600' : 'bg-white'
+                    formData.category !== 'permanent' 
+                      ? 'bg-stone-200 text-stone-400 cursor-not-allowed' 
+                      : autoCalculateFields ? 'bg-stone-100 text-stone-600' : 'bg-white'
                   }`}
                 />
               </div>
@@ -410,12 +433,20 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
               <div>
                 <label className="block text-xs font-medium text-stone-700 mb-1">
                   क. कोष कट्टी (२०%)
+                  {formData.category !== 'permanent' && (
+                    <span className="text-[10px] text-rose-600 block font-normal">लागू हुँदैन (स्थायी मात्र)</span>
+                  )}
                 </label>
                 <input
                   type="number"
-                  value={formData.koshKatti}
+                  disabled={formData.category !== 'permanent'}
+                  value={formData.category === 'permanent' ? formData.koshKatti : 0}
                   onChange={(e) => handleNumberChange('koshKatti', e.target.value)}
-                  className="w-full text-xs px-3 py-2 border border-stone-300 rounded font-mono bg-white"
+                  className={`w-full text-xs px-3 py-2 border border-stone-300 rounded font-mono ${
+                    formData.category !== 'permanent' 
+                      ? 'bg-stone-200 text-stone-400 cursor-not-allowed' 
+                      : 'bg-white'
+                  }`}
                 />
               </div>
 
@@ -461,15 +492,15 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
           <div className="pt-2 border-t border-stone-200">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-bold text-stone-700 uppercase tracking-wider">
-                ५. विशेष भत्ता (दसैं भत्ता साउनमा र पोशाक भत्ता चैतमा)
+                ५. विशेष भत्ता (दसैं तथा पोशाक भत्ता - म्यानुअल प्रविष्टि)
               </h3>
-              <span className="text-[11px] text-stone-500">त्रैमासिक जम्मा भन्दा अगाडि जोडिने</span>
+              <span className="text-[11px] text-stone-500">म्यानुअल प्रविष्टि अनुसार हिसाब हुने</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-amber-50/50 p-3 rounded-lg border border-amber-200">
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-bold text-amber-950">
-                    दसैं भत्ता (साउन भुक्तानी)
+                    दसैं भत्ता रकम (रू.)
                   </label>
                   <button
                     type="button"
@@ -495,7 +526,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-bold text-emerald-950">
-                    पोशाक भत्ता (चैत भुक्तानी)
+                    पोशाक भत्ता रकम (रू.)
                   </label>
                   <button
                     type="button"
@@ -513,6 +544,78 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
                   className="w-full text-xs px-3 py-2 border border-emerald-300 rounded font-mono bg-white font-bold"
                 />
                 <p className="text-[10px] text-emerald-800/80 mt-0.5">चैत महिनाको तलब निकासामा समावेश हुन्छ</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 6: Baisakh Grade Change (साउन-चैत ९ महिना र वैशाख-असार ३ महिना) */}
+          <div className="pt-2 border-t border-stone-200">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-bold text-stone-700 uppercase tracking-wider">
+                ६. वैशाख १ देखिको नयाँ ग्रेड संख्या (९ महिना / ३ महिना विभाजन)
+              </h3>
+              <span className="text-[11px] text-stone-500">वैशाखमा ग्रेड परिवर्तन हुने व्यवस्था</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-purple-50/50 p-3 rounded-lg border border-purple-200">
+              <div>
+                <label className="block text-xs font-bold text-purple-950 mb-1">
+                  वैशाख १ देखिको नयाँ ग्रेड संख्या
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={25}
+                    placeholder="उदा. ६"
+                    value={formData.gradeCountBaisakh !== undefined ? formData.gradeCountBaisakh : ''}
+                    onChange={(e) => handleNumberChange('gradeCountBaisakh', e.target.value)}
+                    className="w-full text-xs px-3 py-2 border border-purple-300 rounded font-mono bg-white font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = Number(formData.gradeCount) || 0;
+                      handleNumberChange('gradeCountBaisakh', (current + 1).toString());
+                    }}
+                    className="px-2.5 py-2 text-xs font-bold text-purple-900 bg-purple-100 hover:bg-purple-200 rounded whitespace-nowrap border border-purple-300"
+                  >
+                    +१ ग्रेड थप्नुहोस्
+                  </button>
+                </div>
+                <p className="text-[10px] text-purple-700 mt-1">
+                  खाली छाडेमा स्वतः साउन-चैतको ग्रेड (वा स्थायीको हकमा +१) प्रयोग हुनेछ
+                </p>
+              </div>
+
+              {/* Section 7: Partial month and days */}
+              <div>
+                <label className="block text-xs font-bold text-stone-800 mb-1">
+                  विशेष आंशिक अवधि (उदा. १ महिना १७ दिन भुक्तानी)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="महिना"
+                    value={formData.customMonths !== undefined ? formData.customMonths : ''}
+                    onChange={(e) => handleNumberChange('customMonths', e.target.value)}
+                    className="w-1/2 text-xs px-2 py-2 border border-stone-300 rounded font-mono bg-white text-center"
+                  />
+                  <span className="text-xs font-semibold text-stone-500">महिना</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={29}
+                    placeholder="दिन"
+                    value={formData.customDays !== undefined ? formData.customDays : ''}
+                    onChange={(e) => handleNumberChange('customDays', e.target.value)}
+                    className="w-1/2 text-xs px-2 py-2 border border-stone-300 rounded font-mono bg-white text-center"
+                  />
+                  <span className="text-xs font-semibold text-stone-500">दिन</span>
+                </div>
+                <p className="text-[10px] text-stone-500 mt-1">
+                  नियमित ३ महिना बाहेक अन्य आंशिक दिन भुक्तानी गर्नुपर्दा मात्र भर्नुहोस्
+                </p>
               </div>
             </div>
           </div>

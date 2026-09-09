@@ -134,15 +134,15 @@ export const MonthlyPrintView: React.FC<MonthlyPrintViewProps> = ({
             </thead>
 
             <tbody>
-              {records.map((m) => (
-                <tr key={m.teacherId} className="border-b border-black">
+              {records.map((m, idx) => (
+                <tr key={`mprint-${m.teacherId}-${idx}`} className="border-b border-black">
                   <td className="border border-black p-1 text-center">{num(m.sn)}</td>
                   <td className="border border-black p-1 font-semibold whitespace-nowrap">{m.name}</td>
                   <td className="border border-black p-1 whitespace-nowrap">{m.designation}</td>
                   <td className="border border-black p-1 text-right">{format(m.basicSalary)}</td>
                   <td className="border border-black p-1 text-right">{m.gradeAmount > 0 ? format(m.gradeAmount) : ''}</td>
-                  <td className="border border-black p-1 text-right">{m.koshThap > 0 ? format(m.koshThap) : ''}</td>
-                  <td className="border border-black p-1 text-right">{m.bimaThap > 0 ? format(m.bimaThap) : ''}</td>
+                  <td className="border border-black p-1 text-right">{m.category === 'permanent' && m.koshThap > 0 ? format(m.koshThap) : ''}</td>
+                  <td className="border border-black p-1 text-right">{m.category === 'permanent' && m.bimaThap > 0 ? format(m.bimaThap) : ''}</td>
                   <td className="border border-black p-1 text-right">
                     {format(m.praABhatta + m.mahangiBhatta + m.anyaBhatta)}
                   </td>
@@ -151,8 +151,8 @@ export const MonthlyPrintView: React.FC<MonthlyPrintViewProps> = ({
                     {m.dashainBhatta > 0 ? format(m.dashainBhatta) : m.poshakBhatta > 0 ? format(m.poshakBhatta) : '-'}
                   </td>
                   <td className="border border-black p-1 text-right font-extrabold bg-stone-100">{format(m.totalMonthlyGross)}</td>
-                  <td className="border border-black p-0.5 text-right">{m.koshKatti > 0 ? format(m.koshKatti) : ''}</td>
-                  <td className="border border-black p-0.5 text-right">{m.bimaKatti > 0 ? format(m.bimaKatti) : ''}</td>
+                  <td className="border border-black p-0.5 text-right">{m.category === 'permanent' && m.koshKatti > 0 ? format(m.koshKatti) : ''}</td>
+                  <td className="border border-black p-0.5 text-right">{m.category === 'permanent' && m.bimaKatti > 0 ? format(m.bimaKatti) : ''}</td>
                   <td className="border border-black p-0.5 text-right">{m.citKatti > 0 ? format(m.citKatti) : ''}</td>
                   <td className="border border-black p-1 text-right font-semibold">{format(m.totalMonthlyKatti)}</td>
                   <td className="border border-black p-1 text-right">{format(m.tax1Percent)}</td>

@@ -131,3 +131,7 @@ export function numberToNepaliWords(n: number): string {
   
   return words;
 }
+
+// Aliases for compatibility
+export const formatCurrency = formatNepaliCurrency;
+export const numberToWordsNepali = numberToNepaliWords;

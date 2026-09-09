@@ -21,13 +21,20 @@ export function calculateTeacherMonthly(
   settings: SpecialAllowanceSettings = DEFAULT_ALLOWANCE_SETTINGS
 ): MonthlyTeacherPayroll {
   const basic = Number(teacher.basicSalary) || 0;
-  const gradeCount = Number(teacher.gradeCount) || 0;
-  const gradeRate = Number(teacher.gradeRate) || (gradeCount > 0 ? Math.round(basic / 30) : 0);
-  const gradeAmount = Number(teacher.gradeAmount) || (gradeCount * gradeRate);
+
+  // Grade adjustment: From Baisakh (वैशाख, जेठ, असार), grade changes!
+  const isBaisakhQuarter = month === 'वैशाख' || month === 'जेठ' || month === 'असार';
+  const effectiveGradeCount = (isBaisakhQuarter && teacher.gradeCountBaisakh !== undefined)
+    ? Number(teacher.gradeCountBaisakh)
+    : (Number(teacher.gradeCount) || 0);
+
+  const gradeRate = Number(teacher.gradeRate) || (effectiveGradeCount > 0 ? Math.round(basic / 30) : 0);
+  const gradeAmount = effectiveGradeCount * gradeRate;
   const basicPlusGrade = basic + gradeAmount;
 
-  const koshThap = Number(teacher.koshThap) || 0;
-  const bimaThap = Number(teacher.bimaThap) || 0;
+  const isPermanent = teacher.category === 'permanent';
+  const koshThap = isPermanent ? Math.round(basicPlusGrade * 0.10 * 100) / 100 : 0;
+  const bimaThap = isPermanent ? (Number(teacher.bimaThap) || 400) : (Number(teacher.bimaThap) || 0);
   const praABhatta = Number(teacher.praABhatta) || 0;
   const mahangiBhatta = Number(teacher.mahangiBhatta) || 0;
   const anyaBhatta = Number(teacher.anyaBhatta) || 0;
@@ -35,31 +42,36 @@ export function calculateTeacherMonthly(
   // Regular monthly gross (नियमित मासिक जम्मा)
   const regularMonthlyGross = Math.round((basic + gradeAmount + koshThap + bimaThap + praABhatta + mahangiBhatta + anyaBhatta) * 100) / 100;
 
-  // Dashain allowance check: Shrawan payment (साउन महिना)
+  // Dashain allowance check: Shrawan payment (साउन महिना) - respects manual entry
   let dashainBhatta = 0;
   if (month === settings.dashainMonth) {
-    if (teacher.category === 'permanent') {
+    if (teacher.dashainBhatta !== undefined && teacher.dashainBhatta !== null) {
+      dashainBhatta = Number(teacher.dashainBhatta);
+    } else if (isPermanent) {
       // 1 month's (Basic + Grade) as per Nepal government festival allowance
       dashainBhatta = basicPlusGrade;
     } else {
-      // For contract/staff, usually 1 month basic salary or scale
       dashainBhatta = basic;
     }
   }
 
-  // Poshak (Dress) allowance check: Chaitra payment (चैत महिना)
+  // Poshak (Dress) allowance check: Chaitra payment (चैत महिना) - respects manual entry
   let poshakBhatta = 0;
   if (month === settings.poshakMonth) {
-    // Standard Rs. 10,000 for government staff
-    poshakBhatta = settings.poshakAmount;
+    if (teacher.poshakBhatta !== undefined && teacher.poshakBhatta !== null) {
+      poshakBhatta = Number(teacher.poshakBhatta);
+    } else {
+      poshakBhatta = settings.poshakAmount;
+    }
   }
 
   // Total gross for this month (including Dashain or Poshak)
   const totalMonthlyGross = Math.round((regularMonthlyGross + dashainBhatta + poshakBhatta) * 100) / 100;
 
-  // Deductions
-  const koshKatti = Number(teacher.koshKatti) || 0;
-  const bimaKatti = Number(teacher.bimaKatti) || 0;
+  // Deductions (कट्टी रकम)
+  // नियम: क. कोष कट्टी र बिमा स्थायी शिक्षकका लागि मात्र
+  const koshKatti = isPermanent ? Math.round(basicPlusGrade * 0.20 * 100) / 100 : 0;
+  const bimaKatti = isPermanent ? (Number(teacher.bimaKatti) || 800) : (Number(teacher.bimaKatti) || 0);
   const citKatti = Number(teacher.citKatti) || 0;
   const otherKatti = Number(teacher.otherKatti) || 0;
 
@@ -82,7 +94,7 @@ export function calculateTeacherMonthly(
     designation: teacher.designation,
     category: teacher.category,
     basicSalary: basic,
-    gradeCount,
+    gradeCount: effectiveGradeCount,
     gradeRate,
     gradeAmount,
     koshThap,

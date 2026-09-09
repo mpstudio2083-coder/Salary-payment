@@ -23,8 +23,8 @@ interface HeaderProps {
   availableYears: FiscalYearPayroll[];
   useNepaliDigits: boolean;
   autoCalculate: boolean;
-  activeTab: 'register' | 'monthly' | 'two-year';
-  onChangeTab: (tab: 'register' | 'monthly' | 'two-year') => void;
+  activeTab: 'register' | 'monthly' | 'two-year' | 'grade-split';
+  onChangeTab: (tab: 'register' | 'monthly' | 'two-year' | 'grade-split') => void;
   onSelectYear: (year: string) => void;
   onToggleDigits: () => void;
   onToggleAutoCalc: () => void;
@@ -36,6 +36,7 @@ interface HeaderProps {
   onResetData: () => void;
   onIncrementAllGrades: () => void;
   onChangeMonthsCount: (months: number) => void;
+  onOpenPartialSalaryModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -56,7 +57,8 @@ export const Header: React.FC<HeaderProps> = ({
   onExportCsv,
   onResetData,
   onIncrementAllGrades,
-  onChangeMonthsCount
+  onChangeMonthsCount,
+  onOpenPartialSalaryModal
 }) => {
   return (
     <header className="bg-white border-b border-stone-200 sticky top-0 z-30 shadow-xs">
@@ -203,9 +205,39 @@ export const Header: React.FC<HeaderProps> = ({
                 दुवै साल हिसाब
               </span>
             </button>
+
+            <button
+              id="tab-grade-split"
+              onClick={() => onChangeTab('grade-split')}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+                activeTab === 'grade-split'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <Calculator className="w-4 h-4" />
+              <span>९ महिना र ३ महिना (वैशाख ग्रेड)</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded font-extrabold ${
+                activeTab === 'grade-split' ? 'bg-amber-800 text-white' : 'bg-amber-100 text-amber-900'
+              }`}>
+                नयाँ ग्रेड
+              </span>
+            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Quick Partial Day Tool */}
+            {onOpenPartialSalaryModal && (
+              <button
+                type="button"
+                onClick={onOpenPartialSalaryModal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200 rounded-md shadow-2xs transition-colors"
+                title="१ महिना १७ दिन वा अन्य आंशिक दिनको तलब हिसाब"
+              >
+                <Calculator className="w-3.5 h-3.5 text-blue-600" />
+                <span>१ महिना १७ दिन क्याल्कुलेटर</span>
+              </button>
+            )}
             {/* Fiscal Year Selector */}
             <div className="flex items-center gap-2">
               <label htmlFor="select-fiscal-year" className="text-xs font-semibold text-stone-700 flex items-center gap-1">

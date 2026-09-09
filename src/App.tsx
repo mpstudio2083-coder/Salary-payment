@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiscalYearPayroll, SchoolInfo, TeacherRecord, NepaliMonth } from './types';
 import { initialFiscalYears, initialSchoolInfo } from './data/initialData';
 import { calculateTeacherPayroll } from './utils/calculations';
+import { sanitizeFiscalYears } from './utils/sanitizeData';
 import { Header } from './components/Header';
 import { SummaryCards } from './components/SummaryCards';
 import { PayrollTable } from './components/PayrollTable';
@@ -12,6 +13,8 @@ import { YearPeriodModal } from './components/YearPeriodModal';
 import { SchoolSettingsModal } from './components/SchoolSettingsModal';
 import { PrintView } from './components/PrintView';
 import { TwoYearComparisonView } from './components/TwoYearComparisonView';
+import { GradeSplit9_3View } from './components/GradeSplit9_3View';
+import { PartialSalaryModal } from './components/PartialSalaryModal';
 import { exportPayrollToCsv } from './utils/exportExcel';
 
 const STORAGE_KEY_YEARS = 'nepal_school_payroll_years_v1';
@@ -26,22 +29,24 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_KEY_YEARS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return sanitizeFiscalYears(parsed);
+        }
       }
     } catch (e) {
       console.error('Failed to load years from localStorage', e);
     }
-    return initialFiscalYears;
+    return sanitizeFiscalYears(initialFiscalYears);
   });
 
   // 2. Active Fiscal Year
   const [selectedYear, setSelectedYear] = useState<string>('२०८२/८३');
 
-  // 3. Active Tab: 'monthly' vs 'register' vs 'two-year'
-  const [activeTab, setActiveTab] = useState<'register' | 'monthly' | 'two-year'>(() => {
+  // 3. Active Tab: 'monthly' vs 'register' vs 'two-year' vs 'grade-split'
+  const [activeTab, setActiveTab] = useState<'register' | 'monthly' | 'two-year' | 'grade-split'>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_TAB);
-      if (saved === 'register' || saved === 'monthly' || saved === 'two-year') return saved;
+      if (saved === 'register' || saved === 'monthly' || saved === 'two-year' || saved === 'grade-split') return saved;
     } catch (e) {
       // default
     }
@@ -79,6 +84,8 @@ export default function App() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isPrintViewOpen, setIsPrintViewOpen] = useState(false);
   const [printMonthlyMonth, setPrintMonthlyMonth] = useState<NepaliMonth | null>(null);
+  const [isPartialSalaryModalOpen, setIsPartialSalaryModalOpen] = useState(false);
+  const [partialSalaryTeacherId, setPartialSalaryTeacherId] = useState<string | undefined>(undefined);
 
   // Save to localStorage when states update
   useEffect(() => {
@@ -184,8 +191,10 @@ export default function App() {
     );
   };
 
-  // Handler: Select Quarter (प्रथम त्रैमासिक = साउन दसैं भत्ता सहित, तेस्रो = चैत पोशाक सहित)
-  const handleSelectQuarter = (quarter: 'first' | 'second' | 'third' | 'fourth' | 'yearly') => {
+  // Handler: Select Quarter (प्रथम त्रैमासिक = साउन दसैं भत्ता सहित, तेस्रो = चैत पोशाक सहित, ९ महिना / ३ महिना)
+  const handleSelectQuarter = (
+    quarter: 'first' | 'second' | 'third' | 'fourth' | 'yearly' | 'nine_months' | 'three_months'
+  ) => {
     let incDashain = false;
     let incPoshak = false;
     let months = 3;
@@ -211,6 +220,16 @@ export default function App() {
       incPoshak = false;
       months = 3;
       title = 'चौथो त्रैमासिक (वैशाखदेखि असारसम्म) को तलबी भर्पाई';
+    } else if (quarter === 'nine_months') {
+      incDashain = true;
+      incPoshak = true;
+      months = 9;
+      title = 'साउनदेखि चैतसम्म (९ महिना) को तलबी भर्पाई';
+    } else if (quarter === 'three_months') {
+      incDashain = false;
+      incPoshak = false;
+      months = 3;
+      title = 'वैशाखदेखि असारसम्म (३ महिना - नयाँ ग्रेड) को तलबी भर्पाई';
     } else if (quarter === 'yearly') {
       incDashain = true;
       incPoshak = true;
@@ -242,6 +261,38 @@ export default function App() {
     );
   };
 
+  // Handler: Apply partial duration (months & days) to a teacher
+  const handleApplyDurationToTeacher = (teacherId: string, months: number, days: number) => {
+    setFiscalYears((prev) =>
+      prev.map((yr) => {
+        if (yr.fiscalYear === currentPayroll.fiscalYear) {
+          const updatedTeachers = yr.teachers.map((t) => {
+            if (t.id === teacherId) {
+              const updated = {
+                ...t,
+                customMonths: months,
+                customDays: days,
+                customDurationLabel: `${months} महिना ${days} दिन`
+              };
+              return calculateTeacherPayroll(updated, yr.monthsCount, autoCalculate, {
+                includeDashain: yr.includeDashain ?? true,
+                includePoshak: yr.includePoshak ?? true,
+                months,
+                days
+              });
+            }
+            return t;
+          });
+          return {
+            ...yr,
+            teachers: updatedTeachers
+          };
+        }
+        return yr;
+      })
+    );
+  };
+
   // Handler: Save Teacher (Add new or Update existing)
   const handleSaveTeacher = (teacher: TeacherRecord) => {
     setFiscalYears((prev) =>
@@ -256,7 +307,11 @@ export default function App() {
           if (exists) {
             updatedTeachers = yr.teachers.map((t) => (t.id === calculated.id ? calculated : t));
           } else {
-            updatedTeachers = [...yr.teachers, calculated];
+            let uniqueId = calculated.id;
+            if (!uniqueId || yr.teachers.some((t) => t.id === uniqueId)) {
+              uniqueId = `t-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+            }
+            updatedTeachers = [...yr.teachers, { ...calculated, id: uniqueId }];
           }
           // Sort by S.N.
           updatedTeachers.sort((a, b) => a.sn - b.sn);
@@ -430,6 +485,10 @@ export default function App() {
         onResetData={handleResetData}
         onIncrementAllGrades={handleIncrementAllGrades}
         onChangeMonthsCount={handleChangeMonthsCount}
+        onOpenPartialSalaryModal={() => {
+          setPartialSalaryTeacherId(undefined);
+          setIsPartialSalaryModalOpen(true);
+        }}
       />
 
       {/* Main Content Area */}
@@ -458,6 +517,17 @@ export default function App() {
                 setEditingTeacher(teacher || null);
                 setIsTeacherModalOpen(true);
               }}
+            />
+          </div>
+        ) : activeTab === 'grade-split' ? (
+          /* 9 Months (Old Grade) + 3 Months (New Grade from Baisakh 1) Split View */
+          <div className="pt-3">
+            <GradeSplit9_3View
+              teachers={currentPayroll.teachers}
+              schoolInfo={schoolInfo}
+              fiscalYear={currentPayroll.fiscalYear}
+              useNepaliDigits={useNepaliDigits}
+              onUpdateTeacher={handleSaveTeacher}
             />
           </div>
         ) : (
@@ -508,6 +578,11 @@ export default function App() {
                 setIsTeacherModalOpen(true);
               }}
               onDeleteTeacher={handleDeleteTeacher}
+              onOpenGradeSplitView={() => setActiveTab('grade-split')}
+              onOpenPartialSalaryModal={(id) => {
+                setPartialSalaryTeacherId(id);
+                setIsPartialSalaryModalOpen(true);
+              }}
             />
           </>
         )}
@@ -566,6 +641,20 @@ export default function App() {
           useNepaliDigits={useNepaliDigits}
         />
       )}
+
+      {/* Partial Salary Modal (१ महिना १७ दिन वा अन्य आंशिक दिनको तलब हिसाब) */}
+      <PartialSalaryModal
+        isOpen={isPartialSalaryModalOpen}
+        onClose={() => {
+          setIsPartialSalaryModalOpen(false);
+          setPartialSalaryTeacherId(undefined);
+        }}
+        teachers={currentPayroll.teachers}
+        schoolInfo={schoolInfo}
+        fiscalYear={currentPayroll.fiscalYear}
+        selectedTeacherId={partialSalaryTeacherId}
+        onApplyDurationToTeacher={handleApplyDurationToTeacher}
+      />
     </div>
   );
 }
