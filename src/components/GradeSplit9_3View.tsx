@@ -5,20 +5,35 @@ import { calculateGradeSplit9_3, GradeSplitTeacherResult } from '../utils/calcul
 import { formatCurrency, toNepaliNumber, numberToWordsNepali } from '../utils/nepaliNumber';
 
 interface GradeSplit9_3ViewProps {
-  currentFiscalYear: FiscalYearPayroll;
+  currentFiscalYear?: FiscalYearPayroll;
+  teachers?: TeacherRecord[];
+  fiscalYear?: string;
+  useNepaliDigits?: boolean;
   schoolInfo: SchoolInfo;
   onUpdateTeacher: (updatedTeacher: TeacherRecord) => void;
   onUpdateFiscalYear?: (updatedFY: FiscalYearPayroll) => void;
+  onClose?: () => void;
 }
 
 export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
   currentFiscalYear,
+  teachers: propTeachers,
+  fiscalYear: propFiscalYear,
+  useNepaliDigits = true,
   schoolInfo,
   onUpdateTeacher,
   onUpdateFiscalYear,
+  onClose,
 }) => {
-  const teachers = currentFiscalYear.teachers || [];
+  const teachers = propTeachers || currentFiscalYear?.teachers || [];
+  const fiscalYear = propFiscalYear || currentFiscalYear?.fiscalYear || '२०८२/८३';
   const [editingTeacherId, setEditingTeacherId] = useState<string | null>(null);
+
+  const format = (val: number | undefined | null) =>
+    formatCurrency(val, { nepaliDigits: useNepaliDigits });
+
+  const num = (val: number | string | undefined | null) =>
+    useNepaliDigits ? toNepaliNumber(val) : (val !== undefined && val !== null ? val.toString() : '0');
 
   // Auto-fill all permanent teachers with +1 grade for Baisakh if not already set
   const handleAutoSetBaisakhGrades = () => {
@@ -104,42 +119,42 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
           <div className="bg-stone-50 p-2.5 rounded-lg border border-stone-200">
             <span className="text-[11px] text-stone-500 font-medium block">९ महिनाको तलब (साउन-चैत)</span>
             <span className="text-xs font-bold text-stone-800 font-mono">
-              {formatCurrency(totalP1Gross)}
+              {format(totalP1Gross)}
             </span>
           </div>
 
           <div className="bg-amber-50/70 p-2.5 rounded-lg border border-amber-200">
             <span className="text-[11px] text-amber-800 font-bold block">३ महिनाको तलब (वैशाख-असार)</span>
             <span className="text-xs font-bold text-amber-950 font-mono">
-              {formatCurrency(totalP2Gross)}
+              {format(totalP2Gross)}
             </span>
           </div>
 
           <div className="bg-purple-50 p-2.5 rounded-lg border border-purple-200">
             <span className="text-[11px] text-purple-800 font-bold block">दसैं भत्ता (म्यानुअल)</span>
             <span className="text-xs font-bold text-purple-950 font-mono">
-              {formatCurrency(totalDashain)}
+              {format(totalDashain)}
             </span>
           </div>
 
           <div className="bg-sky-50 p-2.5 rounded-lg border border-sky-200">
             <span className="text-[11px] text-sky-800 font-bold block">पोशाक भत्ता (म्यानुअल)</span>
             <span className="text-xs font-bold text-sky-950 font-mono">
-              {formatCurrency(totalPoshak)}
+              {format(totalPoshak)}
             </span>
           </div>
 
           <div className="bg-rose-50 p-2.5 rounded-lg border border-rose-200">
             <span className="text-[11px] text-rose-800 font-bold block">वार्षिक कट्टी र १% कर</span>
             <span className="text-xs font-bold text-rose-950 font-mono">
-              {formatCurrency(totalAnnualKatti + totalAnnualTax)}
+              {format(totalAnnualKatti + totalAnnualTax)}
             </span>
           </div>
 
           <div className="bg-emerald-50 p-2.5 rounded-lg border border-emerald-300">
             <span className="text-[11px] text-emerald-800 font-black block">वार्षिक खुद भुक्तानी</span>
             <span className="text-sm font-black text-emerald-950 font-mono">
-              {formatCurrency(totalAnnualNet)}
+              {format(totalAnnualNet)}
             </span>
           </div>
         </div>
@@ -151,14 +166,14 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
         <div className="p-4 border-b border-stone-200 bg-stone-50 flex flex-col md:flex-row md:items-center justify-between gap-2">
           <div>
             <span className="text-xs font-bold text-stone-700">
-              {schoolInfo.schoolName} | आ.व. {currentFiscalYear.fiscalYear} वार्षिक तलबी भर्पाई
+              {schoolInfo.schoolName} | आ.व. {fiscalYear} वार्षिक तलबी भर्पाई
             </span>
             <p className="text-[11px] text-stone-500">
               * तलका कोठाहरूमा वैशाखको नयाँ ग्रेड, दसैं भत्ता र पोशाक भत्ता सिधै टाइप गरी फेरबदल गर्न सक्नुहुन्छ
             </p>
           </div>
           <div className="text-xs font-semibold text-stone-600">
-            कुल शिक्षक संख्या: <span className="font-bold text-stone-900">{toNepaliNumber(teachers.length)}</span>
+            कुल शिक्षक संख्या: <span className="font-bold text-stone-900">{num(teachers.length)}</span>
           </div>
         </div>
 
@@ -236,7 +251,7 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                     }`}
                   >
                     <td className="border border-stone-300 px-2 py-1.5 text-center text-stone-500 font-mono">
-                      {toNepaliNumber(idx + 1)}
+                      {num(idx + 1)}
                     </td>
                     <td className="border border-stone-300 px-2 py-1.5 font-bold text-stone-900 whitespace-nowrap">
                       {teacher.name}
@@ -250,21 +265,21 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                       {teacher.designation}
                     </td>
                     <td className="border border-stone-300 px-2 py-1.5 text-right font-mono text-stone-800">
-                      {formatCurrency(teacher.basicSalary)}
+                      {format(teacher.basicSalary)}
                     </td>
 
                     {/* Period 1 (9 Months) */}
                     <td className="border border-stone-300 px-1.5 py-1.5 text-center font-mono bg-blue-50/20">
-                      {toNepaliNumber(r.p1GradeCount)}
+                      {num(r.p1GradeCount)}
                     </td>
                     <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-blue-50/20">
-                      {formatCurrency(r.p1MonthlyGross)}
+                      {format(r.p1MonthlyGross)}
                     </td>
                     <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono font-bold text-blue-950 bg-blue-50/30">
-                      {formatCurrency(r.p1PeriodGross)}
+                      {format(r.p1PeriodGross)}
                     </td>
                     <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono text-rose-800 bg-blue-50/20">
-                      {formatCurrency(r.p1PeriodKatti)}
+                      {format(r.p1PeriodKatti)}
                     </td>
 
                     {/* Period 2 (3 Months) - Editable Grade Input */}
@@ -286,13 +301,13 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                       />
                     </td>
                     <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-amber-50/30">
-                      {formatCurrency(r.p2MonthlyGross)}
+                      {format(r.p2MonthlyGross)}
                     </td>
                     <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono font-bold text-amber-950 bg-amber-50/40">
-                      {formatCurrency(r.p2PeriodGross)}
+                      {format(r.p2PeriodGross)}
                     </td>
                     <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono text-rose-800 bg-amber-50/30">
-                      {formatCurrency(r.p2PeriodKatti)}
+                      {format(r.p2PeriodKatti)}
                     </td>
 
                     {/* Manual Dashain Input */}
@@ -331,16 +346,16 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
 
                     {/* Annual Summary */}
                     <td className="border border-stone-300 px-2 py-1.5 text-right font-mono font-bold text-stone-900 bg-emerald-50/30">
-                      {formatCurrency(r.annualTotalGross)}
+                      {format(r.annualTotalGross)}
                     </td>
                     <td className="border border-stone-300 px-2 py-1.5 text-right font-mono text-rose-800 bg-rose-50/30">
-                      {formatCurrency(r.annualTotalKatti)}
+                      {format(r.annualTotalKatti)}
                     </td>
                     <td className="border border-stone-300 px-2 py-1.5 text-right font-mono text-amber-900 bg-amber-50/30">
-                      {formatCurrency(r.annualTax1Percent)}
+                      {format(r.annualTax1Percent)}
                     </td>
                     <td className="border border-stone-300 px-2 py-1.5 text-right font-mono font-black text-emerald-950 bg-emerald-100/80">
-                      {formatCurrency(r.annualNetPayable)}
+                      {format(r.annualNetPayable)}
                     </td>
                   </tr>
                 );
@@ -352,37 +367,37 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                   कुल जम्मा (९ महिना + ३ महिना + भत्ताहरू):
                 </td>
                 <td className="border border-stone-300 px-1.5 py-2 text-right font-mono text-blue-950 bg-blue-100">
-                  {formatCurrency(totalP1Gross)}
+                  {format(totalP1Gross)}
                 </td>
                 <td className="border border-stone-300 px-1.5 py-2 text-right font-mono text-rose-900">
-                  {formatCurrency(calculatedRows.reduce((a, b) => a + b.p1PeriodKatti, 0))}
+                  {format(calculatedRows.reduce((a, b) => a + b.p1PeriodKatti, 0))}
                 </td>
                 <td colSpan={2} className="border border-stone-300 px-1.5 py-2 text-right">
                   ३ महिना जम्मा:
                 </td>
                 <td className="border border-stone-300 px-1.5 py-2 text-right font-mono text-amber-950 bg-amber-100">
-                  {formatCurrency(totalP2Gross)}
+                  {format(totalP2Gross)}
                 </td>
                 <td className="border border-stone-300 px-1.5 py-2 text-right font-mono text-rose-900">
-                  {formatCurrency(calculatedRows.reduce((a, b) => a + b.p2PeriodKatti, 0))}
+                  {format(calculatedRows.reduce((a, b) => a + b.p2PeriodKatti, 0))}
                 </td>
                 <td className="border border-stone-300 px-1.5 py-2 text-right font-mono text-purple-950 bg-purple-100">
-                  {formatCurrency(totalDashain)}
+                  {format(totalDashain)}
                 </td>
                 <td className="border border-stone-300 px-1.5 py-2 text-right font-mono text-purple-950 bg-purple-100">
-                  {formatCurrency(totalPoshak)}
+                  {format(totalPoshak)}
                 </td>
                 <td className="border border-stone-300 px-2 py-2 text-right font-mono text-stone-950 bg-emerald-100">
-                  {formatCurrency(totalAnnualGross)}
+                  {format(totalAnnualGross)}
                 </td>
                 <td className="border border-stone-300 px-2 py-2 text-right font-mono text-rose-950 bg-rose-100">
-                  {formatCurrency(totalAnnualKatti)}
+                  {format(totalAnnualKatti)}
                 </td>
                 <td className="border border-stone-300 px-2 py-2 text-right font-mono text-amber-950 bg-amber-100">
-                  {formatCurrency(totalAnnualTax)}
+                  {format(totalAnnualTax)}
                 </td>
                 <td className="border border-stone-300 px-2 py-2 text-right font-mono text-emerald-950 font-black bg-emerald-200 text-sm">
-                  {formatCurrency(totalAnnualNet)}
+                  {format(totalAnnualNet)}
                 </td>
               </tr>
             </tbody>

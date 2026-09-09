@@ -523,11 +523,13 @@ export default function App() {
           /* 9 Months (Old Grade) + 3 Months (New Grade from Baisakh 1) Split View */
           <div className="pt-3">
             <GradeSplit9_3View
+              currentFiscalYear={currentPayroll}
               teachers={currentPayroll.teachers}
               schoolInfo={schoolInfo}
               fiscalYear={currentPayroll.fiscalYear}
               useNepaliDigits={useNepaliDigits}
               onUpdateTeacher={handleSaveTeacher}
+              onClose={() => setActiveTab('register')}
             />
           </div>
         ) : (
