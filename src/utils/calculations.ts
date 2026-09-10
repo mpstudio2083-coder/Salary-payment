@@ -8,6 +8,8 @@ export interface CalculationOptions {
   includePoshak?: boolean; // चैतमा पोशाक भत्ता त्रैमासिक जम्मामा समावेश गर्ने
   months?: number; // पूर्ण महिना (उदा. १)
   days?: number; // दिन (उदा. १७)
+  useBaisakhGrade?: boolean; // वैशाख १ देखिको नयाँ ग्रेड प्रयोग गर्ने
+  quarter?: 'first' | 'second' | 'third' | 'fourth' | 'yearly' | 'nine_months' | 'three_months';
 }
 
 /**
@@ -20,7 +22,17 @@ export function calculateTeacherPayroll(
   options?: CalculationOptions
 ): TeacherRecord {
   const basic = Number(teacher.basicSalary) || 0;
-  const gradeCount = Number(teacher.gradeCount) || 0;
+  
+  // Grade count: User can customize, or auto-calculate based on joining date
+  // If useBaisakhGrade option is requested, use gradeCountBaisakh (or +1 for permanent)
+  let gradeCount = Number(teacher.gradeCount) || 0;
+  if (options?.useBaisakhGrade) {
+    if (teacher.gradeCountBaisakh !== undefined) {
+      gradeCount = Number(teacher.gradeCountBaisakh);
+    } else if (teacher.category === 'permanent') {
+      gradeCount = (Number(teacher.gradeCount) || 0) + 1;
+    }
+  }
   
   // Grade rate: either provided or calculated as Basic / 30
   let gradeRate = Number(teacher.gradeRate);
@@ -100,6 +112,10 @@ export function calculateTeacherPayroll(
   let effectiveDurationMonths = monthsCount;
   if (options && options.months !== undefined && options.days !== undefined) {
     effectiveDurationMonths = options.months + (options.days / 30);
+  } else if (options?.quarter === 'nine_months' && teacher.period1Months !== undefined) {
+    effectiveDurationMonths = teacher.period1Months + ((teacher.period1Days || 0) / 30);
+  } else if (options?.quarter === 'three_months' && teacher.period2Months !== undefined) {
+    effectiveDurationMonths = teacher.period2Months + ((teacher.period2Days || 0) / 30);
   } else if (teacher.customMonths !== undefined && teacher.customDays !== undefined) {
     effectiveDurationMonths = teacher.customMonths + (teacher.customDays / 30);
   }
@@ -368,13 +384,22 @@ export function calculatePartialSalary(
 
 /**
  * 9 Months (Shrawan-Chaitra) & 3 Months (Baisakh-Ashad with Grade Increment) Split Calculation
+ * Allows custom/individual working duration (months & days) per teacher
  */
 export interface GradeSplitTeacherResult {
   teacher: TeacherRecord;
-  period1Months: number; // default 9 (साउन - चैत)
-  period2Months: number; // default 3 (वैशाख - असार)
+  period1Months: number; // साउन - चैत काम गरेको महिना
+  period1Days: number; // साउन - चैत काम गरेको दिन
+  period1EffectiveMonths: number; // period1Months + (period1Days / 30)
 
-  // Period 1 (Shrawan - Chaitra, 9 months)
+  period2Months: number; // वैशाख - असार काम गरेको महिना
+  period2Days: number; // वैशाख - असार काम गरेको दिन
+  period2EffectiveMonths: number; // period2Months + (period2Days / 30)
+
+  totalWorkedMonths: number; // कुल काम गरेको महिना
+  durationLabel: string; // e.g. "९ महिना" वा "१ महिना १७ दिन" वा "१२ महिना"
+
+  // Period 1 (Shrawan - Chaitra)
   p1GradeCount: number;
   p1GradeRate: number;
   p1GradeAmount: number;
@@ -384,7 +409,7 @@ export interface GradeSplitTeacherResult {
   p1PeriodGross: number;
   p1PeriodKatti: number;
 
-  // Period 2 (Baisakh - Ashad, 3 months - Grade change)
+  // Period 2 (Baisakh - Ashad - Grade change)
   p2GradeCount: number;
   p2GradeRate: number;
   p2GradeAmount: number;
@@ -398,7 +423,7 @@ export interface GradeSplitTeacherResult {
   dashainBhatta: number;
   poshakBhatta: number;
 
-  // Combined Annual (12 months)
+  // Combined Annual
   annualRegularGross: number;
   annualTotalGross: number;
   annualTotalKatti: number;
@@ -409,13 +434,83 @@ export interface GradeSplitTeacherResult {
 
 export function calculateGradeSplit9_3(
   teacher: TeacherRecord,
-  period1Months: number = 9,
-  period2Months: number = 3
+  customP1Months?: number,
+  customP1Days?: number,
+  customP2Months?: number,
+  customP2Days?: number
 ): GradeSplitTeacherResult {
   const basic = Number(teacher.basicSalary) || 0;
   const isPermanent = teacher.category === 'permanent';
 
-  // Period 1 Grade
+  // Determine Period 1 (Shrawan - Chaitra) duration
+  let p1Months = 9;
+  let p1Days = 0;
+  if (customP1Months !== undefined) {
+    p1Months = Math.max(0, Number(customP1Months) || 0);
+  } else if (teacher.period1Months !== undefined) {
+    p1Months = Math.max(0, Number(teacher.period1Months) || 0);
+  } else if (teacher.customMonths !== undefined) {
+    // If teacher had a custom duration set in partial salary (e.g. 1 month 17 days)
+    if (teacher.customMonths <= 9) {
+      p1Months = teacher.customMonths;
+      p1Days = teacher.customDays || 0;
+    } else {
+      p1Months = 9;
+      p1Days = 0;
+    }
+  }
+
+  if (customP1Days !== undefined) {
+    p1Days = Math.max(0, Number(customP1Days) || 0);
+  } else if (teacher.period1Days !== undefined) {
+    p1Days = Math.max(0, Number(teacher.period1Days) || 0);
+  }
+
+  // Determine Period 2 (Baisakh - Ashad) duration
+  let p2Months = 3;
+  let p2Days = 0;
+  if (customP2Months !== undefined) {
+    p2Months = Math.max(0, Number(customP2Months) || 0);
+  } else if (teacher.period2Months !== undefined) {
+    p2Months = Math.max(0, Number(teacher.period2Months) || 0);
+  } else if (teacher.customMonths !== undefined) {
+    if (teacher.customMonths <= 9) {
+      p2Months = 0;
+      p2Days = 0;
+    } else {
+      p2Months = Math.min(3, teacher.customMonths - 9);
+      p2Days = teacher.customDays || 0;
+    }
+  }
+
+  if (customP2Days !== undefined) {
+    p2Days = Math.max(0, Number(customP2Days) || 0);
+  } else if (teacher.period2Days !== undefined) {
+    p2Days = Math.max(0, Number(teacher.period2Days) || 0);
+  }
+
+  const p1EffectiveMonths = Math.max(0, p1Months + (p1Days / 30));
+  const p2EffectiveMonths = Math.max(0, p2Months + (p2Days / 30));
+  const totalWorkedMonths = Math.round((p1EffectiveMonths + p2EffectiveMonths) * 100) / 100;
+
+  // Format Duration Label (उदा. "१ महिना १७ दिन", "९ महिना", "१२ महिना")
+  const totalMonthsInt = Math.floor(p1Months + p2Months);
+  const totalDaysInt = Math.round(p1Days + p2Days);
+  const extraMonthsFromDays = Math.floor(totalDaysInt / 30);
+  const remainingDays = totalDaysInt % 30;
+  const finalMonths = totalMonthsInt + extraMonthsFromDays;
+  let durationLabel = '';
+  if (finalMonths > 0 && remainingDays > 0) {
+    durationLabel = `${finalMonths} महिना ${remainingDays} दिन`;
+  } else if (finalMonths > 0) {
+    durationLabel = `${finalMonths} महिना`;
+  } else if (remainingDays > 0) {
+    durationLabel = `${remainingDays} दिन`;
+  } else {
+    durationLabel = '० महिना';
+  }
+
+  // Period 1 Grade & Monthly Calculations
   const p1GradeCount = Number(teacher.gradeCount) || 0;
   const p1GradeRate = Number(teacher.gradeRate) || (p1GradeCount > 0 ? Math.round(basic / 30) : 0);
   const p1GradeAmount = p1GradeCount * p1GradeRate;
@@ -434,8 +529,9 @@ export function calculateGradeSplit9_3(
   const otherKatti = Number(teacher.otherKatti) || 0;
   const p1MonthlyKatti = Math.round((p1KoshKatti + bimaKatti + citKatti + otherKatti) * 100) / 100;
 
-  const p1PeriodGross = Math.round(p1MonthlyGross * period1Months * 100) / 100;
-  const p1PeriodKatti = Math.round(p1MonthlyKatti * period1Months * 100) / 100;
+  // Period 1 Totals (based on actual worked duration)
+  const p1PeriodGross = Math.round(p1MonthlyGross * p1EffectiveMonths * 100) / 100;
+  const p1PeriodKatti = Math.round(p1MonthlyKatti * p1EffectiveMonths * 100) / 100;
 
   // Period 2 Grade: If teacher.gradeCountBaisakh is specified, use it. Otherwise, permanent gets +1 grade.
   const p2GradeCount = teacher.gradeCountBaisakh !== undefined 
@@ -451,14 +547,15 @@ export function calculateGradeSplit9_3(
   const p2KoshKatti = isPermanent ? Math.round(p2BasicPlusGrade * 0.20 * 100) / 100 : 0;
   const p2MonthlyKatti = Math.round((p2KoshKatti + bimaKatti + citKatti + otherKatti) * 100) / 100;
 
-  const p2PeriodGross = Math.round(p2MonthlyGross * period2Months * 100) / 100;
-  const p2PeriodKatti = Math.round(p2MonthlyKatti * period2Months * 100) / 100;
+  // Period 2 Totals (based on actual worked duration)
+  const p2PeriodGross = Math.round(p2MonthlyGross * p2EffectiveMonths * 100) / 100;
+  const p2PeriodKatti = Math.round(p2MonthlyKatti * p2EffectiveMonths * 100) / 100;
 
-  // Manual festival allowances
+  // Manual festival allowances (दसैं तथा पोशाक भत्ता)
   const dashainBhatta = Number(teacher.dashainBhatta) || 0;
   const poshakBhatta = Number(teacher.poshakBhatta) || 0;
 
-  // Combined Annual
+  // Combined Annual (calculated accurately based on each teacher's actual working period)
   const annualRegularGross = Math.round((p1PeriodGross + p2PeriodGross) * 100) / 100;
   const annualTotalGross = Math.round((annualRegularGross + dashainBhatta + poshakBhatta) * 100) / 100;
   const annualTotalKatti = Math.round((p1PeriodKatti + p2PeriodKatti) * 100) / 100;
@@ -468,8 +565,14 @@ export function calculateGradeSplit9_3(
 
   return {
     teacher,
-    period1Months,
-    period2Months,
+    period1Months: p1Months,
+    period1Days: p1Days,
+    period1EffectiveMonths: p1EffectiveMonths,
+    period2Months: p2Months,
+    period2Days: p2Days,
+    period2EffectiveMonths: p2EffectiveMonths,
+    totalWorkedMonths,
+    durationLabel,
     p1GradeCount,
     p1GradeRate,
     p1GradeAmount,

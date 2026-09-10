@@ -33,6 +33,12 @@ export interface TeacherRecord {
   customMonths?: number; // e.g. 1
   customDays?: number; // e.g. 17
   customDurationLabel?: string; // e.g. "१ महिना १७ दिन"
+
+  // Period 1 (साउन-चैत) and Period 2 (वैशाख-असार) working duration (कति महिना र दिन काम गरेको)
+  period1Months?: number; // अवधि १ (साउन-चैत) काम गरेको महिना (default 9 वा custom)
+  period1Days?: number; // अवधि १ (साउन-चैत) काम गरेको दिन (default 0 वा custom)
+  period2Months?: number; // अवधि २ (वैशाख-असार) काम गरेको महिना (default 3 वा custom)
+  period2Days?: number; // अवधि २ (वैशाख-असार) काम गरेको दिन (default 0 वा custom)
   
   // Computed fields (can be auto-calculated or stored)
   monthlyGross?: number; // एक महिनाको जम्मा
