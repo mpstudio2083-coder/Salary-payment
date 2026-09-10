@@ -112,12 +112,42 @@ export function calculateTeacherPayroll(
   let effectiveDurationMonths = monthsCount;
   if (options && options.months !== undefined && options.days !== undefined) {
     effectiveDurationMonths = options.months + (options.days / 30);
-  } else if (options?.quarter === 'nine_months' && teacher.period1Months !== undefined) {
-    effectiveDurationMonths = teacher.period1Months + ((teacher.period1Days || 0) / 30);
-  } else if (options?.quarter === 'three_months' && teacher.period2Months !== undefined) {
-    effectiveDurationMonths = teacher.period2Months + ((teacher.period2Days || 0) / 30);
-  } else if (teacher.customMonths !== undefined && teacher.customDays !== undefined) {
-    effectiveDurationMonths = teacher.customMonths + (teacher.customDays / 30);
+  } else if (options?.quarter === 'nine_months') {
+    if (teacher.period1Months !== undefined) {
+      effectiveDurationMonths = Number(teacher.period1Months) + ((Number(teacher.period1Days) || 0) / 30);
+    } else if (teacher.customMonths !== undefined || teacher.customDays !== undefined) {
+      const cm = Number(teacher.customMonths) || 0;
+      const cd = Number(teacher.customDays) || 0;
+      effectiveDurationMonths = Math.min(9, cm) + (cd / 30);
+    } else {
+      effectiveDurationMonths = 9;
+    }
+  } else if (options?.quarter === 'three_months') {
+    if (teacher.period2Months !== undefined) {
+      effectiveDurationMonths = Number(teacher.period2Months) + ((Number(teacher.period2Days) || 0) / 30);
+    } else if (teacher.customMonths !== undefined || teacher.customDays !== undefined) {
+      const cm = Number(teacher.customMonths) || 0;
+      const cd = Number(teacher.customDays) || 0;
+      if (cm <= 9) {
+        effectiveDurationMonths = 0;
+      } else {
+        effectiveDurationMonths = Math.min(3, cm - 9) + (cd / 30);
+      }
+    } else {
+      effectiveDurationMonths = 3;
+    }
+  } else if (options?.quarter === 'yearly') {
+    if (teacher.period1Months !== undefined || teacher.period2Months !== undefined) {
+      const p1 = (teacher.period1Months !== undefined ? Number(teacher.period1Months) : 9) + ((Number(teacher.period1Days) || 0) / 30);
+      const p2 = (teacher.period2Months !== undefined ? Number(teacher.period2Months) : 3) + ((Number(teacher.period2Days) || 0) / 30);
+      effectiveDurationMonths = p1 + p2;
+    } else if (teacher.customMonths !== undefined || teacher.customDays !== undefined) {
+      effectiveDurationMonths = (Number(teacher.customMonths) || 0) + ((Number(teacher.customDays) || 0) / 30);
+    } else {
+      effectiveDurationMonths = 12;
+    }
+  } else if (teacher.customMonths !== undefined || teacher.customDays !== undefined) {
+    effectiveDurationMonths = (Number(teacher.customMonths) || 0) + ((Number(teacher.customDays) || 0) / 30);
   }
 
   // Period Gross Total (त्रैमासिक / अवधिको जम्मा = मासिक जम्मा × महिना + दसैं भत्ता + पोशाक भत्ता)
@@ -449,11 +479,12 @@ export function calculateGradeSplit9_3(
     p1Months = Math.max(0, Number(customP1Months) || 0);
   } else if (teacher.period1Months !== undefined) {
     p1Months = Math.max(0, Number(teacher.period1Months) || 0);
-  } else if (teacher.customMonths !== undefined) {
-    // If teacher had a custom duration set in partial salary (e.g. 1 month 17 days)
-    if (teacher.customMonths <= 9) {
-      p1Months = teacher.customMonths;
-      p1Days = teacher.customDays || 0;
+  } else if (teacher.customMonths !== undefined || teacher.customDays !== undefined) {
+    const cm = Number(teacher.customMonths) || 0;
+    const cd = Number(teacher.customDays) || 0;
+    if (cm <= 9) {
+      p1Months = cm;
+      p1Days = cd;
     } else {
       p1Months = 9;
       p1Days = 0;
@@ -473,13 +504,15 @@ export function calculateGradeSplit9_3(
     p2Months = Math.max(0, Number(customP2Months) || 0);
   } else if (teacher.period2Months !== undefined) {
     p2Months = Math.max(0, Number(teacher.period2Months) || 0);
-  } else if (teacher.customMonths !== undefined) {
-    if (teacher.customMonths <= 9) {
+  } else if (teacher.customMonths !== undefined || teacher.customDays !== undefined) {
+    const cm = Number(teacher.customMonths) || 0;
+    const cd = Number(teacher.customDays) || 0;
+    if (cm <= 9) {
       p2Months = 0;
       p2Days = 0;
     } else {
-      p2Months = Math.min(3, teacher.customMonths - 9);
-      p2Days = teacher.customDays || 0;
+      p2Months = Math.min(3, cm - 9);
+      p2Days = cd;
     }
   }
 
@@ -517,17 +550,18 @@ export function calculateGradeSplit9_3(
   const p1BasicPlusGrade = basic + p1GradeAmount;
 
   const p1KoshThap = isPermanent ? Math.round(p1BasicPlusGrade * 0.10 * 100) / 100 : 0;
-  const bimaThap = isPermanent ? (Number(teacher.bimaThap) || 400) : 0;
+  const bimaThap = isPermanent ? (Number(teacher.bimaThap) || 400) : (Number(teacher.bimaThap) || 0);
   const praABhatta = Number(teacher.praABhatta) || 0;
   const mahangiBhatta = Number(teacher.mahangiBhatta) || 0;
   const anyaBhatta = Number(teacher.anyaBhatta) || 0;
 
-  const p1MonthlyGross = Math.round((basic + p1GradeAmount + p1KoshThap + bimaThap + praABhatta + mahangiBhatta + anyaBhatta) * 100) / 100;
+  // Sync strictly with talabi varpai's monthlyGross if defined, else calculate
+  const p1MonthlyGross = Number(teacher.monthlyGross) || Math.round((basic + p1GradeAmount + p1KoshThap + bimaThap + praABhatta + mahangiBhatta + anyaBhatta) * 100) / 100;
   const p1KoshKatti = isPermanent ? Math.round(p1BasicPlusGrade * 0.20 * 100) / 100 : 0;
-  const bimaKatti = isPermanent ? (Number(teacher.bimaKatti) || 800) : 0;
+  const bimaKatti = isPermanent ? (Number(teacher.bimaKatti) || 800) : (Number(teacher.bimaKatti) || 0);
   const citKatti = Number(teacher.citKatti) || 0;
   const otherKatti = Number(teacher.otherKatti) || 0;
-  const p1MonthlyKatti = Math.round((p1KoshKatti + bimaKatti + citKatti + otherKatti) * 100) / 100;
+  const p1MonthlyKatti = Number(teacher.monthlyKatti) || Math.round((p1KoshKatti + bimaKatti + citKatti + otherKatti) * 100) / 100;
 
   // Period 1 Totals (based on actual worked duration)
   const p1PeriodGross = Math.round(p1MonthlyGross * p1EffectiveMonths * 100) / 100;
@@ -538,28 +572,41 @@ export function calculateGradeSplit9_3(
     ? Number(teacher.gradeCountBaisakh) 
     : (isPermanent ? p1GradeCount + 1 : p1GradeCount);
   
-  const p2GradeRate = p1GradeRate || Math.round(basic / 30);
+  const p2GradeRate = p1GradeRate || (p2GradeCount > 0 ? Math.round(basic / 30) : 0);
   const p2GradeAmount = p2GradeCount * p2GradeRate;
   const p2BasicPlusGrade = basic + p2GradeAmount;
-
   const p2KoshThap = isPermanent ? Math.round(p2BasicPlusGrade * 0.10 * 100) / 100 : 0;
-  const p2MonthlyGross = Math.round((basic + p2GradeAmount + p2KoshThap + bimaThap + praABhatta + mahangiBhatta + anyaBhatta) * 100) / 100;
-  const p2KoshKatti = isPermanent ? Math.round(p2BasicPlusGrade * 0.20 * 100) / 100 : 0;
-  const p2MonthlyKatti = Math.round((p2KoshKatti + bimaKatti + citKatti + otherKatti) * 100) / 100;
+  const gradeDelta = (p2GradeCount - p1GradeCount) * p2GradeRate;
+  const koshThapDelta = isPermanent ? Math.round(gradeDelta * 0.10 * 100) / 100 : 0;
+  const koshKattiDelta = isPermanent ? Math.round(gradeDelta * 0.20 * 100) / 100 : 0;
+
+  const p2MonthlyGross = Math.round((p1MonthlyGross + gradeDelta + koshThapDelta) * 100) / 100;
+  const p2MonthlyKatti = Math.round((p1MonthlyKatti + koshKattiDelta) * 100) / 100;
 
   // Period 2 Totals (based on actual worked duration)
   const p2PeriodGross = Math.round(p2MonthlyGross * p2EffectiveMonths * 100) / 100;
   const p2PeriodKatti = Math.round(p2MonthlyKatti * p2EffectiveMonths * 100) / 100;
 
-  // Manual festival allowances (दसैं तथा पोशाक भत्ता)
-  const dashainBhatta = Number(teacher.dashainBhatta) || 0;
-  const poshakBhatta = Number(teacher.poshakBhatta) || 0;
+  // Festival allowances (दसैं तथा पोशाक भत्ता)
+  let dashainBhatta = 0;
+  if (teacher.dashainBhatta !== undefined && teacher.dashainBhatta !== null) {
+    dashainBhatta = Number(teacher.dashainBhatta) || 0;
+  } else if (p1EffectiveMonths > 0 && (isPermanent || teacher.designation.includes('वि.'))) {
+    dashainBhatta = p1BasicPlusGrade;
+  }
+
+  let poshakBhatta = 0;
+  if (teacher.poshakBhatta !== undefined && teacher.poshakBhatta !== null) {
+    poshakBhatta = Number(teacher.poshakBhatta) || 0;
+  } else if (p1EffectiveMonths > 0 && (isPermanent || teacher.designation.includes('वि.'))) {
+    poshakBhatta = 10000;
+  }
 
   // Combined Annual (calculated accurately based on each teacher's actual working period)
   const annualRegularGross = Math.round((p1PeriodGross + p2PeriodGross) * 100) / 100;
   const annualTotalGross = Math.round((annualRegularGross + dashainBhatta + poshakBhatta) * 100) / 100;
   const annualTotalKatti = Math.round((p1PeriodKatti + p2PeriodKatti) * 100) / 100;
-  const annualPayableGross = Math.round((annualTotalGross - annualTotalKatti) * 100) / 100;
+  const annualPayableGross = Math.max(0, Math.round((annualTotalGross - annualTotalKatti) * 100) / 100);
   const annualTax1Percent = annualPayableGross > 0 ? Math.round(annualPayableGross * 0.01 * 100) / 100 : 0;
   const annualNetPayable = Math.round((annualPayableGross - annualTax1Percent) * 100) / 100;
 

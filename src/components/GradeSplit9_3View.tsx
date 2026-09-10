@@ -43,6 +43,42 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
   const num = (val: number | string | undefined | null) =>
     useNepaliDigits ? toNepaliNumber(val) : (val !== undefined && val !== null ? val.toString() : '0');
 
+  // Update teacher working duration across Period 1 and Period 2 and sync with customMonths
+  const handleUpdateDuration = (
+    teacher: TeacherRecord,
+    p1Months: number,
+    p1Days: number,
+    p2Months: number,
+    p2Days: number
+  ) => {
+    const totalM = Math.max(0, p1Months) + Math.max(0, p2Months);
+    const totalD = Math.max(0, p1Days) + Math.max(0, p2Days);
+    const extraM = Math.floor(totalD / 30);
+    const remD = totalD % 30;
+    const finalM = totalM + extraM;
+    let label = '';
+    if (finalM > 0 && remD > 0) {
+      label = `${finalM} महिना ${remD} दिन`;
+    } else if (finalM > 0) {
+      label = `${finalM} महिना`;
+    } else if (remD > 0) {
+      label = `${remD} दिन`;
+    } else {
+      label = '० महिना';
+    }
+
+    onUpdateTeacher({
+      ...teacher,
+      period1Months: p1Months,
+      period1Days: p1Days,
+      period2Months: p2Months,
+      period2Days: p2Days,
+      customMonths: finalM,
+      customDays: remD,
+      customDurationLabel: label,
+    });
+  };
+
   // Auto-fill all permanent teachers with +1 grade for Baisakh if not already set
   const handleAutoSetBaisakhGrades = () => {
     teachers.forEach((teacher) => {
@@ -63,17 +99,23 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
     alert('सबै स्थायी शिक्षकहरूको वैशाख १ देखिको १ ग्रेड वृद्धि र दसैं/पोशाक भत्ता प्रारम्भिक सेट गरियो!');
   };
 
+  // Set standard 9 and 3 months for regular teachers without modifying teachers with custom partial periods
+  const handleKeepPartialAndSetStandard = () => {
+    teachers.forEach((teacher) => {
+      const hasCustom = (teacher.customMonths !== undefined && teacher.customMonths < 12) || 
+        (teacher.period1Months !== undefined && (teacher.period1Months !== 9 || teacher.period2Months !== 3));
+      if (!hasCustom) {
+        handleUpdateDuration(teacher, 9, 0, 3, 0);
+      }
+    });
+    alert('नियमित शिक्षकहरूको ९ र ३ महिना सेट गरियो (आंशिक अवधि भएका शिक्षकहरूको यथावत राखियो)!');
+  };
+
   // Reset everyone to standard full 12 months (9 months in Period 1 and 3 months in Period 2)
   const handleResetAllTo9And3 = () => {
-    if (confirm('के तपाईं सबै शिक्षकहरूको अवधि ९ महिना (साउन-चैत) र ३ महिना (वैशाख-असार) पूर्ण १२ महिना सेट गर्न चाहनुहुन्छ?')) {
+    if (confirm('के तपाईं सबै शिक्षकहरूको अवधि ९ महिना (साउन-चैत) र ३ महिना (वैशाख-असार) पूर्ण १२ महिना सेट गर्न चाहनुहुन्छ? (चेतावनी: आंशिक अवधि भएका शिक्षकहरूको पनि १२ महिना हुनेछ)')) {
       teachers.forEach((teacher) => {
-        onUpdateTeacher({
-          ...teacher,
-          period1Months: 9,
-          period1Days: 0,
-          period2Months: 3,
-          period2Days: 0,
-        });
+        handleUpdateDuration(teacher, 9, 0, 3, 0);
       });
     }
   };
@@ -143,6 +185,16 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
             >
               <UserCheck className="w-4 h-4 text-amber-700" />
               <span>वैशाख १ ग्रेड स्वतः भर्नुहोस्</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleKeepPartialAndSetStandard}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg shadow-2xs transition-colors"
+              title="नियमित शिक्षकहरूलाई ९ र ३ महिना सेट गर्नुहोस् तर आंशिक महिना काम गरेका शिक्षकहरूको अवधि सुरक्षित राख्नुहोस्"
+            >
+              <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+              <span>नियमित शिक्षक ९ र ३ महिना (आंशिक सुरक्षित)</span>
             </button>
 
             <button
@@ -332,7 +384,7 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                       {num(idx + 1)}
                     </td>
 
-                    {/* Name & Duration Tag */}
+                    {/* Name & Duration Tag & Quick Presets */}
                     <td className="border border-stone-300 px-2 py-1.5 font-bold text-stone-900">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1 flex-wrap">
@@ -346,13 +398,73 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                         <div className="flex items-center gap-1 mt-0.5">
                           {isCustomDuration ? (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.2 bg-amber-100 text-amber-900 text-[10px] font-bold rounded border border-amber-300" title="यो शिक्षकको काम गरेको अवधि १२ महिना भन्दा फरक छ">
-                              ⏳ {r.durationLabel}
+                              ⏳ कुल: {r.durationLabel}
                             </span>
                           ) : (
                             <span className="text-[10px] text-stone-500 font-normal">
                               कुल: १२ महिना
                             </span>
                           )}
+                        </div>
+
+                        {/* 1-Click Quick Presets for this Teacher */}
+                        <div className="flex items-center gap-1 flex-wrap mt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDuration(teacher, 9, 0, 3, 0)}
+                            className="text-[9px] px-1.5 py-0.2 rounded bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 transition-colors"
+                            title="९ महिना (साउन-चैत) + ३ महिना (वैशाख-असार) = कुल १२ महिना"
+                          >
+                            १२म (९+३)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDuration(teacher, 9, 0, 0, 0)}
+                            className="text-[9px] px-1.5 py-0.2 rounded bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors"
+                            title="साउन-चैत ९ महिना मात्र, वैशाख-असार ० महिना"
+                          >
+                            ९म (९+०)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDuration(teacher, 6, 0, 0, 0)}
+                            className="text-[9px] px-1.5 py-0.2 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 transition-colors"
+                            title="साउन-चैत ६ महिना, वैशाख-असार ० महिना"
+                          >
+                            ६म
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDuration(teacher, 3, 0, 0, 0)}
+                            className="text-[9px] px-1.5 py-0.2 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 transition-colors"
+                            title="साउन-चैत ३ महिना, वैशाख-असार ० महिना"
+                          >
+                            ३म (३+०)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDuration(teacher, 0, 0, 3, 0)}
+                            className="text-[9px] px-1.5 py-0.2 rounded bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors"
+                            title="साउन-चैत ० महिना, वैशाख-असार ३ महिना"
+                          >
+                            ३म (०+३)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDuration(teacher, 1, 17, 0, 0)}
+                            className="text-[9px] px-1.5 py-0.2 rounded bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-semibold transition-colors"
+                            title="१ महिना १७ दिन सेट (अवधि २ स्वतः ० महिना)"
+                          >
+                            १म १७दि
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDuration(teacher, 0, 0, 0, 0)}
+                            className="text-[9px] px-1.5 py-0.2 rounded bg-stone-100 hover:bg-stone-200 text-stone-600 border border-stone-300 transition-colors"
+                            title="० महिना (काम नगरेको)"
+                          >
+                            ०म
+                          </button>
                         </div>
                       </div>
                     </td>
@@ -386,11 +498,7 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                             value={r.period1Months}
                             onChange={(e) => {
                               const val = Math.max(0, parseInt(e.target.value) || 0);
-                              onUpdateTeacher({
-                                ...teacher,
-                                period1Months: val,
-                                period1Days: r.period1Days,
-                              });
+                              handleUpdateDuration(teacher, val, r.period1Days, r.period2Months, r.period2Days);
                             }}
                             className="w-10 text-center font-mono font-bold text-xs py-0.5 border border-blue-300 rounded bg-white text-blue-950 focus:ring-1 focus:ring-blue-500 shadow-2xs"
                             title="साउन-चैत काम गरेको महिना (सामान्यतया ९ महिना)"
@@ -403,11 +511,7 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                             value={r.period1Days}
                             onChange={(e) => {
                               const val = Math.max(0, Math.min(29, parseInt(e.target.value) || 0));
-                              onUpdateTeacher({
-                                ...teacher,
-                                period1Months: r.period1Months,
-                                period1Days: val,
-                              });
+                              handleUpdateDuration(teacher, r.period1Months, val, r.period2Months, r.period2Days);
                             }}
                             className="w-10 text-center font-mono font-bold text-xs py-0.5 border border-blue-300 rounded bg-white text-blue-950 focus:ring-1 focus:ring-blue-500 shadow-2xs"
                             title="साउन-चैत काम गरेको थप दिन (० देखि २९ सम्म)"
@@ -419,13 +523,7 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            onClick={() => {
-                              onUpdateTeacher({
-                                ...teacher,
-                                period1Months: 9,
-                                period1Days: 0,
-                              });
-                            }}
+                            onClick={() => handleUpdateDuration(teacher, 9, 0, r.period2Months, r.period2Days)}
                             className="text-[9px] px-1 py-0.2 rounded bg-blue-100 hover:bg-blue-200 text-blue-800"
                             title="साउन-चैत ९ महिना सेट"
                           >
@@ -433,15 +531,23 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              onUpdateTeacher({
-                                ...teacher,
-                                period1Months: 1,
-                                period1Days: 17,
-                                period2Months: 0,
-                                period2Days: 0,
-                              });
-                            }}
+                            onClick={() => handleUpdateDuration(teacher, 6, 0, r.period2Months, r.period2Days)}
+                            className="text-[9px] px-1 py-0.2 rounded bg-blue-100 hover:bg-blue-200 text-blue-800"
+                            title="साउन-चैत ६ महिना सेट"
+                          >
+                            ६म
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDuration(teacher, 3, 0, r.period2Months, r.period2Days)}
+                            className="text-[9px] px-1 py-0.2 rounded bg-blue-100 hover:bg-blue-200 text-blue-800"
+                            title="साउन-चैत ३ महिना सेट"
+                          >
+                            ३म
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDuration(teacher, 1, 17, 0, 0)}
                             className="text-[9px] px-1 py-0.2 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold"
                             title="१ महिना १७ दिन सेट (अवधि २ स्वतः ० महिना हुनेछ)"
                           >
@@ -449,13 +555,7 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              onUpdateTeacher({
-                                ...teacher,
-                                period1Months: 0,
-                                period1Days: 0,
-                              });
-                            }}
+                            onClick={() => handleUpdateDuration(teacher, 0, 0, r.period2Months, r.period2Days)}
                             className="text-[9px] px-1 py-0.2 rounded bg-stone-100 hover:bg-stone-200 text-stone-600"
                             title="० महिना सेट"
                           >
@@ -505,11 +605,7 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                             value={r.period2Months}
                             onChange={(e) => {
                               const val = Math.max(0, parseInt(e.target.value) || 0);
-                              onUpdateTeacher({
-                                ...teacher,
-                                period2Months: val,
-                                period2Days: r.period2Days,
-                              });
+                              handleUpdateDuration(teacher, r.period1Months, r.period1Days, val, r.period2Days);
                             }}
                             className="w-10 text-center font-mono font-bold text-xs py-0.5 border border-amber-300 rounded bg-white text-amber-950 focus:ring-1 focus:ring-amber-500 shadow-2xs"
                             title="वैशाख-असार काम गरेको महिना (सामान्यतया ३ महिना)"
@@ -522,11 +618,7 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                             value={r.period2Days}
                             onChange={(e) => {
                               const val = Math.max(0, Math.min(29, parseInt(e.target.value) || 0));
-                              onUpdateTeacher({
-                                ...teacher,
-                                period2Months: r.period2Months,
-                                period2Days: val,
-                              });
+                              handleUpdateDuration(teacher, r.period1Months, r.period1Days, r.period2Months, val);
                             }}
                             className="w-10 text-center font-mono font-bold text-xs py-0.5 border border-amber-300 rounded bg-white text-amber-950 focus:ring-1 focus:ring-amber-500 shadow-2xs"
                             title="वैशाख-असार काम गरेको थप दिन (० देखि २९ सम्म)"
@@ -538,13 +630,7 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            onClick={() => {
-                              onUpdateTeacher({
-                                ...teacher,
-                                period2Months: 3,
-                                period2Days: 0,
-                              });
-                            }}
+                            onClick={() => handleUpdateDuration(teacher, r.period1Months, r.period1Days, 3, 0)}
                             className="text-[9px] px-1 py-0.2 rounded bg-amber-100 hover:bg-amber-200 text-amber-800"
                             title="वैशाख-असार ३ महिना सेट"
                           >
@@ -552,13 +638,23 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              onUpdateTeacher({
-                                ...teacher,
-                                period2Months: 0,
-                                period2Days: 0,
-                              });
-                            }}
+                            onClick={() => handleUpdateDuration(teacher, r.period1Months, r.period1Days, 2, 0)}
+                            className="text-[9px] px-1 py-0.2 rounded bg-amber-100 hover:bg-amber-200 text-amber-800"
+                            title="वैशाख-असार २ महिना सेट"
+                          >
+                            २म
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDuration(teacher, r.period1Months, r.period1Days, 1, 0)}
+                            className="text-[9px] px-1 py-0.2 rounded bg-amber-100 hover:bg-amber-200 text-amber-800"
+                            title="वैशाख-असार १ महिना सेट"
+                          >
+                            १म
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateDuration(teacher, r.period1Months, r.period1Days, 0, 0)}
                             className="text-[9px] px-1 py-0.2 rounded bg-stone-100 hover:bg-stone-200 text-stone-600"
                             title="० महिना सेट (वैशाख-असार काम नगरेको)"
                           >

@@ -12,7 +12,6 @@ import { TeacherModal } from './components/TeacherModal';
 import { YearPeriodModal } from './components/YearPeriodModal';
 import { SchoolSettingsModal } from './components/SchoolSettingsModal';
 import { PrintView } from './components/PrintView';
-import { TwoYearComparisonView } from './components/TwoYearComparisonView';
 import { GradeSplit9_3View } from './components/GradeSplit9_3View';
 import { PartialSalaryModal } from './components/PartialSalaryModal';
 import { exportPayrollToCsv } from './utils/exportExcel';
@@ -42,11 +41,11 @@ export default function App() {
   // 2. Active Fiscal Year
   const [selectedYear, setSelectedYear] = useState<string>('२०८२/८३');
 
-  // 3. Active Tab: 'monthly' vs 'register' vs 'two-year' vs 'grade-split'
-  const [activeTab, setActiveTab] = useState<'register' | 'monthly' | 'two-year' | 'grade-split'>(() => {
+  // 3. Active Tab: 'monthly' vs 'register' vs 'grade-split'
+  const [activeTab, setActiveTab] = useState<'register' | 'monthly' | 'grade-split'>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_TAB);
-      if (saved === 'register' || saved === 'monthly' || saved === 'two-year' || saved === 'grade-split') return saved;
+      if (saved === 'register' || saved === 'monthly' || saved === 'grade-split') return saved;
     } catch (e) {
       // default
     }
@@ -243,7 +242,9 @@ export default function App() {
           const recalculated = yr.teachers.map((t) =>
             calculateTeacherPayroll(t, months, autoCalculate, {
               includeDashain: incDashain,
-              includePoshak: incPoshak
+              includePoshak: incPoshak,
+              quarter: quarter,
+              useBaisakhGrade: quarter === 'three_months'
             })
           );
           return {
@@ -268,15 +269,25 @@ export default function App() {
         if (yr.fiscalYear === currentPayroll.fiscalYear) {
           const updatedTeachers = yr.teachers.map((t) => {
             if (t.id === teacherId) {
+              const p1 = Math.min(9, months);
+              const p1d = months <= 9 ? days : 0;
+              const p2 = months > 9 ? Math.min(3, months - 9) : 0;
+              const p2d = months > 9 ? days : 0;
               const updated = {
                 ...t,
                 customMonths: months,
                 customDays: days,
-                customDurationLabel: `${months} महिना ${days} दिन`
+                customDurationLabel: `${months} महिना ${days} दिन`,
+                period1Months: p1,
+                period1Days: p1d,
+                period2Months: p2,
+                period2Days: p2d
               };
               return calculateTeacherPayroll(updated, yr.monthsCount, autoCalculate, {
                 includeDashain: yr.includeDashain ?? true,
                 includePoshak: yr.includePoshak ?? true,
+                quarter: yr.selectedQuarter as any,
+                useBaisakhGrade: yr.selectedQuarter === 'three_months',
                 months,
                 days
               });
@@ -300,7 +311,9 @@ export default function App() {
         if (yr.fiscalYear === currentPayroll.fiscalYear) {
           const calculated = calculateTeacherPayroll(teacher, yr.monthsCount, autoCalculate, {
             includeDashain: yr.includeDashain ?? true,
-            includePoshak: yr.includePoshak ?? true
+            includePoshak: yr.includePoshak ?? true,
+            quarter: yr.selectedQuarter as any,
+            useBaisakhGrade: yr.selectedQuarter === 'three_months'
           });
           const exists = yr.teachers.some((t) => t.id === calculated.id);
           let updatedTeachers: TeacherRecord[];
@@ -502,21 +515,6 @@ export default function App() {
               fiscalYear={currentPayroll.fiscalYear}
               useNepaliDigits={useNepaliDigits}
               onPrintMonthly={(month) => setPrintMonthlyMonth(month)}
-            />
-          </div>
-        ) : activeTab === 'two-year' ? (
-          /* 2-Year Comparison & Entry View (२ ओटा सालमा रकम इन्ट्री तथा कुल हिसाब) */
-          <div className="pt-3">
-            <TwoYearComparisonView
-              fiscalYears={fiscalYears}
-              onUpdateFiscalYears={(updated) => setFiscalYears(updated)}
-              schoolInfo={schoolInfo}
-              useNepaliDigits={useNepaliDigits}
-              onOpenTeacherModalForYear={(yr, teacher) => {
-                setSelectedYear(yr);
-                setEditingTeacher(teacher || null);
-                setIsTeacherModalOpen(true);
-              }}
             />
           </div>
         ) : activeTab === 'grade-split' ? (

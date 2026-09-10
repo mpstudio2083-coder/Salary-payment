@@ -11,8 +11,7 @@ import {
   Languages,
   Award,
   TableProperties,
-  LayoutDashboard,
-  ArrowRightLeft
+  LayoutDashboard
 } from 'lucide-react';
 import { FiscalYearPayroll, SchoolInfo } from '../types';
 import { toNepaliNumber } from '../utils/nepaliNumber';
@@ -23,8 +22,8 @@ interface HeaderProps {
   availableYears: FiscalYearPayroll[];
   useNepaliDigits: boolean;
   autoCalculate: boolean;
-  activeTab: 'register' | 'monthly' | 'two-year' | 'grade-split';
-  onChangeTab: (tab: 'register' | 'monthly' | 'two-year' | 'grade-split') => void;
+  activeTab: 'register' | 'monthly' | 'grade-split';
+  onChangeTab: (tab: 'register' | 'monthly' | 'grade-split') => void;
   onSelectYear: (year: string) => void;
   onToggleDigits: () => void;
   onToggleAutoCalc: () => void;
@@ -158,6 +157,24 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Main View Mode Navigation Tabs */}
           <div className="inline-flex rounded-lg border border-stone-300 p-1 bg-stone-100">
             <button
+              id="tab-monthly-dashboard"
+              onClick={() => onChangeTab('monthly')}
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold rounded-md transition-all ${
+                activeTab === 'monthly'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>मासिक प्रतिवेदन ड्यासबोर्ड</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded font-extrabold ${
+                activeTab === 'monthly' ? 'bg-blue-800 text-white' : 'bg-amber-100 text-amber-800'
+              }`}>
+                साउन/चैत
+              </span>
+            </button>
+
+            <button
               id="tab-photo-register"
               onClick={() => onChangeTab('register')}
               className={`inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold rounded-md transition-all ${
@@ -168,42 +185,6 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <TableProperties className="w-4 h-4 text-blue-600" />
               <span>फोटो अनुसार तलबी भर्पाई (रजिस्टर)</span>
-            </button>
-
-            <button
-              id="tab-monthly-dashboard"
-              onClick={() => onChangeTab('monthly')}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
-                activeTab === 'monthly'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>मासिक प्रतिवेदन तथा भत्ता</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded font-extrabold ${
-                activeTab === 'monthly' ? 'bg-blue-800 text-white' : 'bg-amber-100 text-amber-800'
-              }`}>
-                साउन/चैत
-              </span>
-            </button>
-
-            <button
-              id="tab-two-year"
-              onClick={() => onChangeTab('two-year')}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
-                activeTab === 'two-year'
-                  ? 'bg-purple-700 text-white shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
-              }`}
-            >
-              <ArrowRightLeft className="w-4 h-4" />
-              <span>२ वर्ष प्रविष्टि तथा कुल तुलना</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded font-extrabold ${
-                activeTab === 'two-year' ? 'bg-purple-900 text-white' : 'bg-emerald-100 text-emerald-800'
-              }`}>
-                दुवै साल हिसाब
-              </span>
             </button>
 
             <button
