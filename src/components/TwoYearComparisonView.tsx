@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { FiscalYearPayroll, TeacherRecord, SchoolInfo } from '../types';
 import { formatNepaliCurrency, toNepaliNumber } from '../utils/nepaliNumber';
-import { calculateGrandTotals, calculateTeacherPayroll } from '../utils/calculations';
+import { calculateGrandTotals, calculateTeacherPayroll, getMaxGradeForDesignation } from '../utils/calculations';
+import { getYearScaleConfig } from '../data/initialData';
 
 interface TwoYearComparisonViewProps {
   fiscalYears: FiscalYearPayroll[];
@@ -209,7 +210,11 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
         basic += revisionFlatAmount;
       }
       const isPerm = t.category === 'permanent';
-      const gradeCount = (revisionAddGrade && isPerm) ? t.gradeCount + 1 : t.gradeCount;
+      const maxGrade = getMaxGradeForDesignation(t.designation);
+      // Respect legal limit: "yo samma hune ko grad bridhhi nagarnu"
+      const gradeCount = (revisionAddGrade && isPerm) 
+        ? (t.gradeCount >= maxGrade ? t.gradeCount : Math.min(maxGrade, t.gradeCount + 1)) 
+        : t.gradeCount;
       const gradeRate = Math.round(basic / 30);
       const gradeAmount = gradeCount * gradeRate;
 
@@ -243,6 +248,55 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
     setIsRevisionModalOpen(false);
     setStatusMessage(`आ.व. ${year2Name} मा नयाँ तलब रकम तथा समायोजन सफलतापूर्वक लागू भयो!`);
     setTimeout(() => setStatusMessage(null), 4000);
+  };
+
+  // One-click Apply Official 2083/84 Scaled Salaries and Grade Caps
+  const handleApplyOfficial2083Scale = () => {
+    if (!year2Data) return;
+    const updatedTeachers = year2Data.teachers.map(t => {
+      const scaleConfig = getYearScaleConfig('२०८३/८४', t.designation, t.name);
+      const basic = scaleConfig.basicSalary > 0 ? scaleConfig.basicSalary : t.basicSalary;
+      const gradeRate = scaleConfig.gradeRate > 0 ? scaleConfig.gradeRate : (t.gradeRate || Math.round(basic / 30));
+      const maxGrade = scaleConfig.maxGrade || getMaxGradeForDesignation(t.designation);
+      const isPerm = t.category === 'permanent';
+
+      // "8 grade ni ma vi 8 grade pra vi second 8 grade pravi third 6 grade yo samma hune ko grad bridhhi nagarnu"
+      const gradeCount = isPerm 
+        ? (t.gradeCount >= maxGrade ? t.gradeCount : Math.min(maxGrade, t.gradeCount + 1)) 
+        : 0;
+
+      const gradeAmount = gradeCount * gradeRate;
+
+      const updated = {
+        ...t,
+        basicSalary: basic,
+        gradeCount,
+        gradeRate,
+        gradeAmount,
+        koshThap: isPerm ? Math.round((basic + gradeAmount) * 0.10 * 100) / 100 : 0,
+        koshKatti: isPerm ? Math.round((basic + gradeAmount) * 0.20 * 100) / 100 : 0
+      };
+
+      return calculateTeacherPayroll(updated, year2Data.monthsCount, true, {
+        includeDashain: year2Data.includeDashain ?? true,
+        includePoshak: year2Data.includePoshak ?? true
+      });
+    });
+
+    const updatedYears = fiscalYears.map(yr => {
+      if (yr.fiscalYear === year2Name) {
+        return {
+          ...yr,
+          teachers: updatedTeachers
+        };
+      }
+      return yr;
+    });
+
+    onUpdateFiscalYears(updatedYears);
+    setIsRevisionModalOpen(false);
+    setStatusMessage('२०८३/८४ को आधिकारिक नयाँ तलब स्केल (मा.वि. ४८,०५८, नि.मा.वि. ३८,२०३, प्रा.वि. २nd ३८,२०३, प्रा.वि. ३rd ३६,१९२) र ग्रेड सीमा लागू गरियो!');
+    setTimeout(() => setStatusMessage(null), 5000);
   };
 
   // Export 2-Year Comparison as CSV
@@ -835,6 +889,30 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
                 यहाँबाट आ.व. <b>{year2Name}</b> का सबै शिक्षकहरूको तलब एकमुष्ट प्रतिशत वा रकमले वृद्धि गर्न सक्नुहुन्छ। 
                 यसले बेसिक तलब, ग्रेड रकम, र स्थायी शिक्षकको कोष तथा बीमा स्वतः गणना गर्नेछ (अस्थायी शिक्षकको कोष कट्टी हुँदैन)।
               </p>
+
+              {/* Official 2083/84 Scale Preset */}
+              <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-emerald-700" />
+                    <h4 className="text-xs font-bold text-emerald-900">
+                      आ.व. २०८३/८४ नयाँ स्केल र ग्रेड सिमा (१-क्लिक सेट)
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-emerald-800 mt-1 leading-relaxed">
+                    मा.वि. ४८,०५८ (ग्रेड १,६०२) | नि.मा.वि. ३८,२०३ (ग्रेड १,२७३) | प्रा.वि. २nd ३८,२०३ | प्रा.वि. ३rd ३६,१९२ (ग्रेड १,२०६)
+                    <br />
+                    <span className="font-semibold text-emerald-900">* सिमा:</span> मा.वि./नि.मा.वि./प्रा.वि. २nd को ८ ग्रेड, प्रा.वि. ३rd को ६ ग्रेड पुगेकाको ग्रेड वृद्धि हुँदैन।
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleApplyOfficial2083Scale}
+                  className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-xs font-bold shadow-xs whitespace-nowrap shrink-0 transition-colors"
+                >
+                  २०८३/८४ नयाँ स्केल लागू
+                </button>
+              </div>
 
               {/* Percentage Increase */}
               <div className="bg-stone-50 p-3 rounded-lg border border-stone-200">

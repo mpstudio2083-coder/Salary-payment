@@ -100,16 +100,20 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
           </span>
         </div>
 
-        {/* Net Payable */}
-        <div className="bg-emerald-50/70 p-3 rounded-lg border border-emerald-300 shadow-2xs">
+        {/* Net Payable - Small & Attractive */}
+        <div className="bg-gradient-to-b from-emerald-50 via-emerald-50/90 to-teal-50/70 p-2.5 rounded-lg border border-emerald-400 shadow-2xs relative flex flex-col justify-between hover:border-emerald-500 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-800">कुल खुद पाउने रकम</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+            <span className="text-[11px] font-bold text-emerald-950">कुल खुद पाउने रकम</span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-1.5 py-0.5 rounded-full border border-emerald-300/80">
+              <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+              <span>खुद</span>
+            </span>
           </div>
-          <p className="text-lg font-extrabold text-emerald-900 mt-1">
+          <p className="text-base sm:text-[17px] font-black text-emerald-950 mt-1 tracking-tight font-mono">
             रू {formatNepaliCurrency(totals.periodNet, { nepaliDigits: useNepaliDigits })}
           </p>
-          <span className="text-[11px] text-emerald-700 font-medium">
+          <span className="text-[10px] text-emerald-800 font-medium flex items-center gap-1 mt-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
             बैंक खातामा जाने खुद रकम
           </span>
         </div>

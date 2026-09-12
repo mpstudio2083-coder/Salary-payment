@@ -123,7 +123,7 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({
       m.gradeAmount,
       m.koshThap,
       m.bimaThap,
-      m.praABhatta + m.mahangiBhatta + m.anyaBhatta,
+      m.praABhatta + m.mahangiBhatta + (m.protsahanBhatta || 0) + m.anyaBhatta,
       m.regularMonthlyGross,
       m.dashainBhatta,
       m.poshakBhatta,
@@ -144,7 +144,7 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({
       totals.gradeAmount,
       totals.koshThap,
       totals.bimaThap,
-      totals.praABhatta + totals.mahangiBhatta + totals.anyaBhatta,
+      totals.praABhatta + totals.mahangiBhatta + (totals.protsahanBhatta || 0) + totals.anyaBhatta,
       totals.regularMonthlyGross,
       totals.dashainBhatta,
       totals.poshakBhatta,
@@ -323,8 +323,8 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({
                         {m.category === 'permanent' && m.bimaThap > 0 ? format(m.bimaThap) : '-'}
                       </td>
                       <td className="border border-stone-300 px-2 py-1.5 text-right font-mono bg-amber-50/20">
-                        {m.praABhatta + m.mahangiBhatta + m.anyaBhatta > 0 
-                          ? format(m.praABhatta + m.mahangiBhatta + m.anyaBhatta) 
+                        {m.praABhatta + m.mahangiBhatta + (m.protsahanBhatta || 0) + m.anyaBhatta > 0 
+                          ? format(m.praABhatta + m.mahangiBhatta + (m.protsahanBhatta || 0) + m.anyaBhatta) 
                           : '-'}
                       </td>
                       <td className="border border-stone-300 px-2.5 py-1.5 text-right font-bold text-stone-900 bg-indigo-50/40 font-mono">
@@ -400,7 +400,7 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({
                     {format(totals.bimaThap)}
                   </td>
                   <td className="border border-stone-400 px-2 py-2 text-right font-mono">
-                    {format(totals.praABhatta + totals.mahangiBhatta + totals.anyaBhatta)}
+                    {format(totals.praABhatta + totals.mahangiBhatta + (totals.protsahanBhatta || 0) + totals.anyaBhatta)}
                   </td>
                   <td className="border border-stone-400 px-2.5 py-2 text-right font-mono bg-amber-200/70">
                     {format(totals.regularMonthlyGross)}
@@ -1145,440 +1145,26 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({
               <span className="text-[11px] text-stone-500">क. कोष, बिमा, सा.क. कोष</span>
             </div>
 
-            {/* Net Payable */}
-            <div className="bg-emerald-50/80 p-3 rounded-lg border border-emerald-300 shadow-2xs">
+            {/* Net Payable - Small & Attractive */}
+            <div className="bg-gradient-to-b from-emerald-50 via-emerald-50/90 to-teal-50/70 p-2.5 rounded-lg border border-emerald-400 shadow-2xs relative flex flex-col justify-between hover:border-emerald-500 transition-colors">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-900">खुद भुक्तानी रकम</span>
-                <CheckCircle className="w-4 h-4 text-emerald-700" />
+                <span className="text-[11px] font-bold text-emerald-950">खुद भुक्तानी रकम</span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-1.5 py-0.5 rounded-full border border-emerald-300/80">
+                  <CheckCircle className="w-3 h-3 text-emerald-700" />
+                  <span>खुद</span>
+                </span>
               </div>
-              <p className="text-lg font-extrabold text-emerald-950 mt-1">
+              <p className="text-base sm:text-[17px] font-black text-emerald-950 mt-1 tracking-tight font-mono">
                 रू {format(totals.netPayable)}
               </p>
-              <span className="text-[11px] text-emerald-700 font-medium">खातामा जाने खुद तलब</span>
+              <span className="text-[10px] text-emerald-800 font-medium flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
+                खातामा जाने खुद तलब
+              </span>
             </div>
           </div>
 
           {renderTablesContent()}
-        </div>
-      )}
-
-      {/* Words Banner */}
-      <div className="bg-stone-50 border border-stone-200 rounded px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
-        <div>
-          <span className="font-bold text-stone-800">{selectedMonth} महिनाको खुद भुक्तानी अक्षरूपी: </span>
-          <span className="text-stone-700 font-medium italic">{netInWords}</span>
-        </div>
-        <div className="text-stone-500 text-[11px]">
-          (१% सामाजिक सुरक्षा कर: रू {format(totals.tax1Percent)})
-        </div>
-      </div>
-
-      {/* View 1: Detailed Single Month Table */}
-      {viewMode === 'monthly' ? (
-        <div className="bg-white border border-stone-300 shadow-sm rounded-xl overflow-hidden">
-          <div className="p-3 bg-stone-50 border-b border-stone-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-blue-600" />
-              <span className="font-bold text-xs text-stone-900">
-                {schoolInfo.schoolName} — {selectedMonth} महिनाको तलबी भर्पाई प्रतिवेदन
-              </span>
-              {selectedMonth === allowanceSettings.dashainMonth && (
-                <span className="px-2 py-0.5 bg-purple-100 text-purple-800 font-bold text-[11px] rounded">
-                  🎁 दसैं भत्ता समावेश
-                </span>
-              )}
-              {selectedMonth === allowanceSettings.poshakMonth && (
-                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold text-[11px] rounded">
-                  👔 पोशाक भत्ता (रू १०,०००) समावेश
-                </span>
-              )}
-            </div>
-            <span className="text-xs text-stone-500">
-              कुल {num(monthlyRecords.length)} जना कर्मचारी
-            </span>
-          </div>
-
-          <div className="overflow-x-auto max-h-[70vh]">
-            <table className="w-full text-[11px] text-stone-800 border-collapse border border-stone-400">
-              <thead className="bg-stone-100 text-stone-900 sticky top-0 z-20 shadow-2xs select-none">
-                <tr className="border-b border-stone-400">
-                  <th className="border border-stone-300 px-2 py-2 text-center font-bold sticky left-0 bg-stone-100 z-30 min-w-[38px]">
-                    क्र. सं.
-                  </th>
-                  <th className="border border-stone-300 px-3 py-2 text-left font-bold sticky left-[38px] bg-stone-100 z-30 min-w-[130px] whitespace-nowrap">
-                    शिक्षकको नाम
-                  </th>
-                  <th className="border border-stone-300 px-2.5 py-2 text-left font-bold min-w-[95px] whitespace-nowrap">
-                    पद / श्रेणी
-                  </th>
-                  <th className="border border-stone-300 px-2 py-2 text-right font-bold min-w-[70px]">
-                    तलब स्केल
-                  </th>
-                  <th className="border border-stone-300 px-2 py-2 text-right font-bold min-w-[65px] bg-blue-50/50">
-                    ग्रेड रकम
-                  </th>
-                  <th className="border border-stone-300 px-2 py-2 text-right font-bold min-w-[65px] bg-emerald-50/40">
-                    क. कोष थप
-                  </th>
-                  <th className="border border-stone-300 px-1.5 py-2 text-right font-bold min-w-[50px] bg-emerald-50/40">
-                    बिमा थप
-                  </th>
-                  <th className="border border-stone-300 px-2 py-2 text-right font-bold min-w-[65px] bg-amber-50/50">
-                    भत्ताहरू
-                  </th>
-                  <th className="border border-stone-300 px-2.5 py-2 text-right font-bold bg-indigo-50/70 min-w-[85px]">
-                    नियमित तलब
-                  </th>
-
-                  {/* Special Allowance Columns */}
-                  <th className={`border border-stone-300 px-2.5 py-2 text-right font-bold min-w-[85px] ${
-                    selectedMonth === allowanceSettings.dashainMonth ? 'bg-purple-100 text-purple-950' : 'bg-stone-50 text-stone-400'
-                  }`}>
-                    दसैं भत्ता (साउन)
-                  </th>
-                  <th className={`border border-stone-300 px-2.5 py-2 text-right font-bold min-w-[80px] ${
-                    selectedMonth === allowanceSettings.poshakMonth ? 'bg-emerald-100 text-emerald-950' : 'bg-stone-50 text-stone-400'
-                  }`}>
-                    पोशाक भत्ता (चैत)
-                  </th>
-
-                  <th className="border border-stone-300 px-2.5 py-2 text-right font-extrabold bg-indigo-100 text-indigo-950 min-w-[95px]">
-                    {selectedMonth} कुल जम्मा
-                  </th>
-
-                  {/* Deductions */}
-                  <th className="border border-stone-300 px-2 py-2 text-right font-bold min-w-[65px] bg-rose-50/50">
-                    क. कोष कट्टी
-                  </th>
-                  <th className="border border-stone-300 px-1.5 py-2 text-right font-bold min-w-[50px] bg-rose-50/50">
-                    बिमा
-                  </th>
-                  <th className="border border-stone-300 px-1.5 py-2 text-right font-bold min-w-[60px] bg-rose-50/50">
-                    सा.क. कोष
-                  </th>
-                  <th className="border border-stone-300 px-2 py-2 text-right font-bold min-w-[75px] bg-rose-100/60 text-rose-950">
-                    जम्मा कट्टी
-                  </th>
-
-                  {/* 1% Tax & Net */}
-                  <th className="border border-stone-300 px-2 py-2 text-right font-bold min-w-[60px] bg-amber-50/70">
-                    १% कर
-                  </th>
-                  <th className="border border-stone-300 px-3 py-2 text-right font-extrabold bg-emerald-200/90 text-emerald-950 min-w-[100px]">
-                    खुद भुक्तानी
-                  </th>
-                  <th className="border border-stone-300 px-2 py-2 text-center font-bold min-w-[75px]">
-                    दस्तखत
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {monthlyRecords.map((m, idx) => {
-                  const isEven = idx % 2 === 0;
-                  return (
-                    <tr
-                      key={`month-rec-${m.teacherId}-${idx}`}
-                      className={`border-b border-stone-200 hover:bg-amber-50/40 transition-colors ${
-                        isEven ? 'bg-white' : 'bg-stone-50/30'
-                      }`}
-                    >
-                      <td className="border border-stone-300 px-2 py-1.5 text-center font-medium sticky left-0 bg-inherit z-10">
-                        {num(m.sn)}
-                      </td>
-                      <td className="border border-stone-300 px-3 py-1.5 font-bold text-stone-900 sticky left-[38px] bg-inherit z-10 whitespace-nowrap">
-                        {m.name}
-                      </td>
-                      <td className="border border-stone-300 px-2.5 py-1.5 text-stone-700 whitespace-nowrap">
-                        {m.designation}
-                      </td>
-                      <td className="border border-stone-300 px-2 py-1.5 text-right font-mono">
-                        {format(m.basicSalary)}
-                      </td>
-                      <td className="border border-stone-300 px-2 py-1.5 text-right font-mono bg-blue-50/20">
-                        {m.gradeAmount > 0 ? format(m.gradeAmount) : '-'}
-                      </td>
-                      <td className="border border-stone-300 px-2 py-1.5 text-right font-mono bg-emerald-50/20">
-                        {m.category === 'permanent' && m.koshThap > 0 ? format(m.koshThap) : '-'}
-                      </td>
-                      <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-emerald-50/20">
-                        {m.category === 'permanent' && m.bimaThap > 0 ? format(m.bimaThap) : '-'}
-                      </td>
-                      <td className="border border-stone-300 px-2 py-1.5 text-right font-mono bg-amber-50/20">
-                        {format(m.praABhatta + m.mahangiBhatta + m.anyaBhatta)}
-                      </td>
-                      <td className="border border-stone-300 px-2.5 py-1.5 text-right font-bold font-mono bg-indigo-50/30">
-                        {format(m.regularMonthlyGross)}
-                      </td>
-
-                      {/* Dashain */}
-                      <td className={`border border-stone-300 px-2.5 py-1.5 text-right font-mono ${
-                        m.dashainBhatta > 0 ? 'font-bold text-purple-900 bg-purple-50' : 'text-stone-300'
-                      }`}>
-                        {m.dashainBhatta > 0 ? format(m.dashainBhatta) : '-'}
-                      </td>
-
-                      {/* Poshak */}
-                      <td className={`border border-stone-300 px-2.5 py-1.5 text-right font-mono ${
-                        m.poshakBhatta > 0 ? 'font-bold text-emerald-900 bg-emerald-50' : 'text-stone-300'
-                      }`}>
-                        {m.poshakBhatta > 0 ? format(m.poshakBhatta) : '-'}
-                      </td>
-
-                      {/* Month Total Gross */}
-                      <td className="border border-stone-300 px-2.5 py-1.5 text-right font-extrabold text-indigo-950 bg-indigo-50/70 font-mono">
-                        {format(m.totalMonthlyGross)}
-                      </td>
-
-                      {/* Deductions */}
-                      <td className="border border-stone-300 px-2 py-1.5 text-right font-mono bg-rose-50/20 text-rose-900">
-                        {m.category === 'permanent' && m.koshKatti > 0 ? format(m.koshKatti) : '-'}
-                      </td>
-                      <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-rose-50/20 text-rose-900">
-                        {m.category === 'permanent' && m.bimaKatti > 0 ? format(m.bimaKatti) : '-'}
-                      </td>
-                      <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-rose-50/20 text-rose-900">
-                        {m.citKatti > 0 ? format(m.citKatti) : '-'}
-                      </td>
-                      <td className="border border-stone-300 px-2 py-1.5 text-right font-bold font-mono bg-rose-100/40 text-rose-950">
-                        {format(m.totalMonthlyKatti)}
-                      </td>
-
-                      {/* 1% Tax */}
-                      <td className="border border-stone-300 px-2 py-1.5 text-right font-mono text-amber-900 bg-amber-50/30">
-                        {format(m.tax1Percent)}
-                      </td>
-
-                      {/* Net Payable */}
-                      <td className="border border-stone-300 px-3 py-1.5 text-right font-extrabold text-emerald-950 bg-emerald-100/70 font-mono">
-                        {format(m.netPayable)}
-                      </td>
-
-                      <td className="border border-stone-300 px-2 py-1.5 text-center text-[10px] text-stone-300">
-                        ...............
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-
-              <tfoot className="bg-amber-100/95 font-extrabold text-stone-900 sticky bottom-0 z-20 shadow-md border-t-2 border-stone-500">
-                <tr>
-                  <td colSpan={3} className="border border-stone-400 px-3 py-2 text-center text-xs tracking-wider sticky left-0 bg-amber-100 z-30">
-                    {selectedMonth} महिनाको कुल जम्मा
-                  </td>
-                  <td className="border border-stone-400 px-2 py-2 text-right font-mono">
-                    {format(totals.basicSalary)}
-                  </td>
-                  <td className="border border-stone-400 px-2 py-2 text-right font-mono">
-                    {format(totals.gradeAmount)}
-                  </td>
-                  <td className="border border-stone-400 px-2 py-2 text-right font-mono">
-                    {format(totals.koshThap)}
-                  </td>
-                  <td className="border border-stone-400 px-1.5 py-2 text-right font-mono">
-                    {format(totals.bimaThap)}
-                  </td>
-                  <td className="border border-stone-400 px-2 py-2 text-right font-mono">
-                    {format(totals.praABhatta + totals.mahangiBhatta + totals.anyaBhatta)}
-                  </td>
-                  <td className="border border-stone-400 px-2.5 py-2 text-right font-mono bg-amber-200/70">
-                    {format(totals.regularMonthlyGross)}
-                  </td>
-
-                  {/* Dashain total */}
-                  <td className="border border-stone-400 px-2.5 py-2 text-right font-mono bg-purple-200/80 text-purple-950">
-                    {format(totals.dashainBhatta)}
-                  </td>
-
-                  {/* Poshak total */}
-                  <td className="border border-stone-400 px-2.5 py-2 text-right font-mono bg-emerald-200/80 text-emerald-950">
-                    {format(totals.poshakBhatta)}
-                  </td>
-
-                  {/* Month Gross Total */}
-                  <td className="border border-stone-400 px-2.5 py-2 text-right font-mono bg-indigo-200 text-indigo-950">
-                    {format(totals.totalMonthlyGross)}
-                  </td>
-
-                  {/* Deductions */}
-                  <td className="border border-stone-400 px-2 py-2 text-right font-mono">
-                    {format(totals.koshKatti)}
-                  </td>
-                  <td className="border border-stone-400 px-1.5 py-2 text-right font-mono">
-                    {format(totals.bimaKatti)}
-                  </td>
-                  <td className="border border-stone-400 px-1.5 py-2 text-right font-mono">
-                    {format(totals.citKatti)}
-                  </td>
-                  <td className="border border-stone-400 px-2 py-2 text-right font-mono bg-rose-200 text-rose-950">
-                    {format(totals.totalMonthlyKatti)}
-                  </td>
-
-                  {/* Tax */}
-                  <td className="border border-stone-400 px-2 py-2 text-right font-mono bg-amber-200/80">
-                    {format(totals.tax1Percent)}
-                  </td>
-
-                  {/* Net */}
-                  <td className="border border-stone-400 px-3 py-2 text-right font-mono bg-emerald-300 text-emerald-950">
-                    {format(totals.netPayable)}
-                  </td>
-
-                  <td className="border border-stone-400 px-2 py-2 text-center text-[10px]">
-                    प्रमाणित
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      ) : (
-        /* View 2: Annual 12-Month Matrix Comparison Table */
-        <div className="bg-white border border-stone-300 shadow-sm rounded-xl overflow-hidden">
-          <div className="p-3 bg-stone-50 border-b border-stone-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-blue-600" />
-              <span className="font-bold text-xs text-stone-900">
-                आर्थिक वर्ष {fiscalYear} को १२ महिनाको विस्तृत निकासा तथा बजेट तुलना
-              </span>
-            </div>
-            <span className="text-xs text-stone-500">
-              वैशाख देखि चैत सम्म (१ वर्ष)
-            </span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-stone-800 border-collapse border border-stone-300">
-              <thead className="bg-stone-100 text-stone-900 border-b border-stone-300">
-                <tr>
-                  <th className="border border-stone-300 px-3 py-2 text-center font-bold">क्र.सं.</th>
-                  <th className="border border-stone-300 px-4 py-2 text-left font-bold">महिना</th>
-                  <th className="border border-stone-300 px-3 py-2 text-left font-bold">विशेष भुक्तानी प्रकार</th>
-                  <th className="border border-stone-300 px-3 py-2 text-right font-bold">नियमित तलब जम्मा</th>
-                  <th className="border border-stone-300 px-3 py-2 text-right font-bold text-purple-900 bg-purple-50">
-                    दसैं भत्ता (साउन)
-                  </th>
-                  <th className="border border-stone-300 px-3 py-2 text-right font-bold text-emerald-900 bg-emerald-50">
-                    पोशाक भत्ता (चैत)
-                  </th>
-                  <th className="border border-stone-300 px-3 py-2 text-right font-bold bg-indigo-50 text-indigo-950">
-                    महिनाको कुल निकासा
-                  </th>
-                  <th className="border border-stone-300 px-3 py-2 text-right font-bold text-rose-900">
-                    कुल कट्टी
-                  </th>
-                  <th className="border border-stone-300 px-3 py-2 text-right font-bold text-amber-900">
-                    १% कर
-                  </th>
-                  <th className="border border-stone-300 px-4 py-2 text-right font-extrabold bg-emerald-100 text-emerald-950">
-                    खुद भुक्तानी रकम
-                  </th>
-                  <th className="border border-stone-300 px-3 py-2 text-center font-bold">कार्य</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {annualSummary.map((m, index) => {
-                  const isDashain = m.isDashainMonth;
-                  const isPoshak = m.isPoshakMonth;
-
-                  return (
-                    <tr
-                      key={m.month}
-                      className={`border-b border-stone-200 hover:bg-stone-50 transition-colors ${
-                        isDashain ? 'bg-purple-50/40' : isPoshak ? 'bg-emerald-50/40' : 'bg-white'
-                      }`}
-                    >
-                      <td className="border border-stone-300 px-3 py-2 text-center font-medium">
-                        {num(index + 1)}
-                      </td>
-                      <td className="border border-stone-300 px-4 py-2 font-bold text-stone-900">
-                        {m.month}
-                      </td>
-                      <td className="border border-stone-300 px-3 py-2">
-                        {isDashain ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold bg-purple-100 text-purple-800 rounded">
-                            🎁 दसैं भत्ता भुक्तानी
-                          </span>
-                        ) : isPoshak ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold bg-emerald-100 text-emerald-800 rounded">
-                            👔 पोशाक भत्ता भुक्तानी
-                          </span>
-                        ) : (
-                          <span className="text-stone-400 text-[11px]">नियमित मासिक</span>
-                        )}
-                      </td>
-                      <td className="border border-stone-300 px-3 py-2 text-right font-mono">
-                        {format(m.regularGross)}
-                      </td>
-                      <td className="border border-stone-300 px-3 py-2 text-right font-mono text-purple-900 font-semibold bg-purple-50/30">
-                        {m.dashainTotal > 0 ? format(m.dashainTotal) : '-'}
-                      </td>
-                      <td className="border border-stone-300 px-3 py-2 text-right font-mono text-emerald-900 font-semibold bg-emerald-50/30">
-                        {m.poshakTotal > 0 ? format(m.poshakTotal) : '-'}
-                      </td>
-                      <td className="border border-stone-300 px-3 py-2 text-right font-mono font-bold bg-indigo-50/50 text-indigo-950">
-                        {format(m.totalGross)}
-                      </td>
-                      <td className="border border-stone-300 px-3 py-2 text-right font-mono text-rose-900">
-                        {format(m.totalDeductions)}
-                      </td>
-                      <td className="border border-stone-300 px-3 py-2 text-right font-mono text-amber-900">
-                        {format(m.totalTax)}
-                      </td>
-                      <td className="border border-stone-300 px-4 py-2 text-right font-mono font-extrabold bg-emerald-100/70 text-emerald-950">
-                        {format(m.totalNet)}
-                      </td>
-                      <td className="border border-stone-300 px-3 py-2 text-center">
-                        <button
-                          onClick={() => {
-                            setSelectedMonth(m.month);
-                            setViewMode('monthly');
-                          }}
-                          className="text-[11px] font-bold text-blue-600 hover:text-blue-800 underline underline-offset-2"
-                        >
-                          विस्तृत हेर्नुहोस्
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-
-              <tfoot className="bg-amber-100/90 font-extrabold text-stone-900 border-t-2 border-stone-500">
-                <tr>
-                  <td colSpan={3} className="border border-stone-400 px-4 py-2.5 text-center font-bold">
-                    वार्षिक कुल जम्मा (१२ महिना)
-                  </td>
-                  <td className="border border-stone-400 px-3 py-2.5 text-right font-mono">
-                    {format(annualGrandTotal.regularGross)}
-                  </td>
-                  <td className="border border-stone-400 px-3 py-2.5 text-right font-mono text-purple-950 bg-purple-200">
-                    {format(annualGrandTotal.dashainTotal)}
-                  </td>
-                  <td className="border border-stone-400 px-3 py-2.5 text-right font-mono text-emerald-950 bg-emerald-200">
-                    {format(annualGrandTotal.poshakTotal)}
-                  </td>
-                  <td className="border border-stone-400 px-3 py-2.5 text-right font-mono bg-indigo-200 text-indigo-950 font-black">
-                    {format(annualGrandTotal.totalGross)}
-                  </td>
-                  <td className="border border-stone-400 px-3 py-2.5 text-right font-mono text-rose-950 bg-rose-200">
-                    {format(annualGrandTotal.totalDeductions)}
-                  </td>
-                  <td className="border border-stone-400 px-3 py-2.5 text-right font-mono bg-amber-200 text-amber-950">
-                    {format(annualGrandTotal.totalTax)}
-                  </td>
-                  <td className="border border-stone-400 px-4 py-2.5 text-right font-mono bg-emerald-300 text-emerald-950 font-black">
-                    {format(annualGrandTotal.totalNet)}
-                  </td>
-                  <td className="border border-stone-400 px-3 py-2.5 text-center text-xs">
-                    वार्षिक बजेट
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
         </div>
       )}
     </div>

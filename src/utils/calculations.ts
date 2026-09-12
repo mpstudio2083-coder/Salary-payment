@@ -112,10 +112,17 @@ export function calculateTeacherPayroll(
 
   const praABhatta = Number(teacher.praABhatta) || 0;
   const mahangiBhatta = Number(teacher.mahangiBhatta) || 0;
+  // Protsahan allowance: scale ko 10% auto-computed when undefined, supports manual typing override
+  let protsahanBhatta = 0;
+  if (teacher.protsahanBhatta !== undefined && teacher.protsahanBhatta !== null) {
+    protsahanBhatta = Number(teacher.protsahanBhatta);
+  } else if (autoComputeFormulas && basic > 0) {
+    protsahanBhatta = Math.round(basic * 0.10 * 100) / 100;
+  }
   const anyaBhatta = Number(teacher.anyaBhatta) || 0;
 
   // Monthly Gross Total (एक महिनाको जम्मा)
-  const monthlyGross = Math.round((basic + gradeAmount + koshThap + bimaThap + praABhatta + mahangiBhatta + anyaBhatta) * 100) / 100;
+  const monthlyGross = Math.round((basic + gradeAmount + koshThap + bimaThap + praABhatta + mahangiBhatta + protsahanBhatta + anyaBhatta) * 100) / 100;
 
   // Festival & Uniform Allowances (दसैं तथा पोशाक भत्ता - म्यानुअल प्रविष्टि प्राथमिकता)
   // Standard defaults for reference if not manually set:
@@ -253,6 +260,7 @@ export function calculateTeacherPayroll(
     bimaThap,
     praABhatta,
     mahangiBhatta,
+    protsahanBhatta,
     anyaBhatta,
     monthlyGross,
     dashainBhatta,
@@ -276,7 +284,7 @@ export function calculateTeacherPayroll(
  * Compute grand totals for all columns
  */
 export function calculateGrandTotals(teachers: TeacherRecord[]) {
-  return teachers.reduce(
+  const result = teachers.reduce(
     (acc, t) => {
       acc.basicSalary += t.basicSalary || 0;
       acc.gradeCount += t.gradeCount || 0;
@@ -285,6 +293,7 @@ export function calculateGrandTotals(teachers: TeacherRecord[]) {
       acc.bimaThap += t.bimaThap || 0;
       acc.praABhatta += t.praABhatta || 0;
       acc.mahangiBhatta += t.mahangiBhatta || 0;
+      acc.protsahanBhatta += t.protsahanBhatta || 0;
       acc.anyaBhatta += t.anyaBhatta || 0;
       acc.monthlyGross += t.monthlyGross || 0;
       acc.dashainBhatta += t.dashainBhatta || 0;
@@ -310,6 +319,7 @@ export function calculateGrandTotals(teachers: TeacherRecord[]) {
       bimaThap: 0,
       praABhatta: 0,
       mahangiBhatta: 0,
+      protsahanBhatta: 0,
       anyaBhatta: 0,
       monthlyGross: 0,
       dashainBhatta: 0,
@@ -327,6 +337,13 @@ export function calculateGrandTotals(teachers: TeacherRecord[]) {
       periodNet: 0
     }
   );
+
+  // Clean 2-decimal rounding for precision
+  for (const key of Object.keys(result) as (keyof typeof result)[]) {
+    result[key] = Math.round(result[key] * 100) / 100;
+  }
+
+  return result;
 }
 
 /**
@@ -387,8 +404,11 @@ export function calculatePartialSalary(
 
   const praABhatta = Number(teacher.praABhatta) || 0;
   const mahangiBhatta = Number(teacher.mahangiBhatta) || 0;
+  const protsahanBhatta = (teacher.protsahanBhatta !== undefined && teacher.protsahanBhatta !== null)
+    ? Number(teacher.protsahanBhatta)
+    : Math.round(basic * 0.10 * 100) / 100;
   const anyaBhatta = Number(teacher.anyaBhatta) || 0;
-  const allowancesTotal = praABhatta + mahangiBhatta + anyaBhatta;
+  const allowancesTotal = praABhatta + mahangiBhatta + protsahanBhatta + anyaBhatta;
 
   const monthlyGross = Math.round((basic + gradeAmount + koshThap + bimaThap + allowancesTotal) * 100) / 100;
   const dailyGross = Math.round((monthlyGross / 30) * 100) / 100;
@@ -593,10 +613,13 @@ export function calculateGradeSplit9_3(
   const bimaThap = isPermanent ? (Number(teacher.bimaThap) || 400) : (Number(teacher.bimaThap) || 0);
   const praABhatta = Number(teacher.praABhatta) || 0;
   const mahangiBhatta = Number(teacher.mahangiBhatta) || 0;
+  const protsahanBhatta = (teacher.protsahanBhatta !== undefined && teacher.protsahanBhatta !== null)
+    ? Number(teacher.protsahanBhatta)
+    : Math.round(basic * 0.10 * 100) / 100;
   const anyaBhatta = Number(teacher.anyaBhatta) || 0;
 
   // Sync strictly with talabi varpai's monthlyGross if defined, else calculate
-  const p1MonthlyGross = Number(teacher.monthlyGross) || Math.round((basic + p1GradeAmount + p1KoshThap + bimaThap + praABhatta + mahangiBhatta + anyaBhatta) * 100) / 100;
+  const p1MonthlyGross = Number(teacher.monthlyGross) || Math.round((basic + p1GradeAmount + p1KoshThap + bimaThap + praABhatta + mahangiBhatta + protsahanBhatta + anyaBhatta) * 100) / 100;
   const p1KoshKatti = isPermanent ? Math.round(p1BasicPlusGrade * 0.20 * 100) / 100 : 0;
   const bimaKatti = isPermanent ? (Number(teacher.bimaKatti) || 800) : (Number(teacher.bimaKatti) || 0);
   const citKatti = Number(teacher.citKatti) || 0;

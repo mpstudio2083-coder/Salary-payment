@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calculator, HelpCircle, Save } from 'lucide-react';
+import { X, Calculator, HelpCircle, Save, Info } from 'lucide-react';
 import { TeacherRecord } from '../types';
-import { calculateTeacherPayroll } from '../utils/calculations';
+import { calculateTeacherPayroll, getMaxGradeForDesignation } from '../utils/calculations';
 import { formatNepaliCurrency } from '../utils/nepaliNumber';
+import { getYearScaleConfig } from '../data/initialData';
 
 interface TeacherModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface TeacherModalProps {
   nextSn: number;
   monthsCount: number;
   useNepaliDigits: boolean;
+  currentFiscalYear?: string;
 }
 
 export const TeacherModal: React.FC<TeacherModalProps> = ({
@@ -21,24 +23,29 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
   initialTeacher,
   nextSn,
   monthsCount,
-  useNepaliDigits
+  useNepaliDigits,
+  currentFiscalYear = '२०८२/८३'
 }) => {
+  const is2083 = currentFiscalYear.includes('२०८३') || currentFiscalYear.includes('2083');
+  const defaultScale = getYearScaleConfig(currentFiscalYear, 'मा.वि. तृतीय');
+
   const [formData, setFormData] = useState<TeacherRecord>({
     id: '',
     sn: nextSn,
     name: '',
     designation: 'मा.वि. तृतीय',
     category: 'permanent',
-    basicSalary: 43680,
+    basicSalary: defaultScale.basicSalary || (is2083 ? 48058 : 43689),
     gradeCount: 0,
-    gradeRate: 1456,
+    gradeRate: defaultScale.gradeRate || (is2083 ? 1602 : 1456),
     gradeAmount: 0,
-    koshThap: 4368,
+    koshThap: Math.round((defaultScale.basicSalary || (is2083 ? 48058 : 43689)) * 0.10 * 100) / 100,
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 0,
     anyaBhatta: 0,
-    koshKatti: 8736,
+    koshKatti: Math.round((defaultScale.basicSalary || (is2083 ? 48058 : 43689)) * 0.20 * 100) / 100,
     bimaKatti: 800,
     citKatti: 0,
     dashainPoshakBhatta: 0
@@ -50,32 +57,36 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
     if (initialTeacher) {
       setFormData(initialTeacher);
     } else {
-      // Default new teacher template
+      // Default new teacher template with current fiscal year scale
+      const pravaScale = getYearScaleConfig(currentFiscalYear, 'प्रा.वि. तृतीय');
+      const baseSalary = pravaScale.basicSalary || (is2083 ? 36192 : 32902);
+      const gRate = pravaScale.gradeRate || (is2083 ? 1206 : 1097);
       const base: TeacherRecord = {
         id: `t-${Date.now()}`,
         sn: nextSn,
         name: '',
         designation: 'प्रा.वि. तृतीय',
         category: 'permanent',
-        basicSalary: 32902,
+        basicSalary: baseSalary,
         gradeCount: 1,
-        gradeRate: 1097,
-        gradeAmount: 1097,
-        koshThap: 3399.90,
+        gradeRate: gRate,
+        gradeAmount: gRate,
+        koshThap: Math.round((baseSalary + gRate) * 0.10 * 100) / 100,
         bimaThap: 400,
         praABhatta: 0,
         mahangiBhatta: 5000,
+        protsahanBhatta: Math.round(baseSalary * 0.10 * 100) / 100, // स्केलको १०% स्वतः भरिने
         anyaBhatta: 0,
-        koshKatti: 6799.80,
+        koshKatti: Math.round((baseSalary + gRate) * 0.20 * 100) / 100,
         bimaKatti: 800,
         citKatti: 4000,
-        dashainBhatta: 33999,
+        dashainBhatta: Math.round(baseSalary + gRate),
         poshakBhatta: 10000,
-        dashainPoshakBhatta: 43999
+        dashainPoshakBhatta: Math.round(baseSalary + gRate + 10000)
       };
       setFormData(calculateTeacherPayroll(base, monthsCount, true));
     }
-  }, [initialTeacher, nextSn, isOpen, monthsCount]);
+  }, [initialTeacher, nextSn, isOpen, monthsCount, currentFiscalYear, is2083]);
 
   if (!isOpen) return null;
 
@@ -84,6 +95,11 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
     const parsed = parseFloat(value) || 0;
     const updated = { ...formData, [field]: parsed };
     
+    // तलब स्केल परिवर्तन हुँदा स्वतः हिसाब अन भएमा प्रोत्साहन भत्ता स्केलको १०% हुने
+    if (field === 'basicSalary' && autoCalculateFields) {
+      updated.protsahanBhatta = Math.round(parsed * 0.10 * 100) / 100;
+    }
+
     if (autoCalculateFields) {
       setFormData(calculateTeacherPayroll(updated, monthsCount, true));
     } else {
@@ -92,45 +108,26 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
   };
 
   const handleSelectDesignation = (desig: string) => {
-    let basic = formData.basicSalary;
     let category = formData.category;
     let bima = formData.bimaThap;
 
-    if (desig.includes('मा.वि. तृतीय')) {
-      basic = 43680;
-      category = 'permanent';
-      bima = 400;
-    } else if (desig.includes('मा.वि. द्वितीय')) {
-      basic = 47380;
-      category = 'permanent';
-      bima = 400;
-    } else if (desig.includes('नि.मा.वि. तृतीय') || desig.includes('प्रा.वि. द्वितीय')) {
-      basic = 34730;
-      category = 'permanent';
-      bima = 400;
-    } else if (desig.includes('प्रा.वि. तृतीय')) {
-      basic = 32902;
-      category = 'permanent';
-      bima = 400;
-    } else if (desig.includes('लेखापाल')) {
-      basic = 18000;
-      category = 'staff';
+    const scaleConfig = getYearScaleConfig(currentFiscalYear, desig, formData.name);
+    let basic = scaleConfig.basicSalary || formData.basicSalary;
+    let gradeRate = scaleConfig.gradeRate || Math.round(basic / 30);
+
+    if (desig.includes('मा.वि.') || desig.includes('नि.मा.वि.') || desig.includes('प्रा.वि.')) {
+      if (!desig.includes('राहत') && !desig.includes('नगर')) {
+        category = 'permanent';
+        bima = 400;
+      }
+    } else if (desig.includes('राहत')) {
+      category = 'relief';
       bima = 0;
-    } else if (desig.includes('सहयोगी')) {
-      basic = 17500;
-      category = 'staff';
-      bima = 0;
-    } else if (desig.includes('स.का.')) {
-      basic = 16000;
-      category = 'staff';
-      bima = 0;
-    } else if (desig.includes('श्रेणी विहीन')) {
-      basic = 13000;
-      category = 'staff';
-      bima = 0;
-    } else if (desig.includes('नगर शिक्षक')) {
-      basic = 17000;
+    } else if (desig.includes('नगर')) {
       category = 'municipal';
+      bima = 0;
+    } else if (desig.includes('लेखापाल') || desig.includes('सहयोगी') || desig.includes('स.का.') || desig.includes('श्रेणी विहीन')) {
+      category = 'staff';
       bima = 0;
     }
 
@@ -144,7 +141,8 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       bimaKatti: isPerm ? 800 : 0,
       koshThap: isPerm ? formData.koshThap : 0,
       koshKatti: isPerm ? formData.koshKatti : 0,
-      gradeRate: Math.round(basic / 30)
+      gradeRate: isPerm ? gradeRate : 0,
+      protsahanBhatta: Math.round(basic * 0.10 * 100) / 100 // स्केलको १०% स्वतः
     };
 
     setFormData(calculateTeacherPayroll(updated, monthsCount, autoCalculateFields));
@@ -232,25 +230,37 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
 
               <div>
                 <label className="block text-xs font-medium text-stone-700 mb-1">
-                  पद / श्रेणी
+                  पद / श्रेणी ({currentFiscalYear} तलब स्केल)
                 </label>
                 <select
                   value={formData.designation}
                   onChange={(e) => handleSelectDesignation(e.target.value)}
                   className="w-full text-xs px-3 py-2 border border-stone-300 rounded font-medium focus:ring-1 focus:ring-blue-500 bg-white"
                 >
-                  <option value="मा.वि. तृतीय">मा.वि. तृतीय (Scale: ४३,६८०)</option>
-                  <option value="मा.वि. द्वितीय">मा.वि. द्वितीय (Scale: ४७,३८०)</option>
-                  <option value="नि.मा.वि. तृतीय">नि.मा.वि. तृतीय (Scale: ३४,७३०)</option>
-                  <option value="नि.मा.वि. द्वितीय">नि.मा.वि. द्वितीय (Scale: ३८,४४०)</option>
-                  <option value="प्रा.वि. द्वितीय">प्रा.वि. द्वितीय (Scale: ३४,७३०)</option>
-                  <option value="प्रा.वि. तृतीय">प्रा.वि. तृतीय (Scale: ३२,९०२)</option>
+                  {is2083 ? (
+                    <>
+                      <option value="मा.वि. तृतीय">मा.वि. तृतीय (Scale: ४८,०५८ | ग्रेड: १,६०२ | सिमा: ८)</option>
+                      <option value="मा.वि. द्वितीय">मा.वि. द्वितीय (Scale: ५२,२७० | सिमा: ८)</option>
+                      <option value="नि.मा.वि. तृतीय">नि.मा.वि. तृतीय (Scale: ३८,२०३ | ग्रेड: १,२७३ | सिमा: ८)</option>
+                      <option value="प्रा.वि. द्वितीय">प्रा.वि. द्वितीय (Scale: ३८,२०३ | ग्रेड: १,२७३ | सिमा: ८)</option>
+                      <option value="प्रा.वि. तृतीय">प्रा.वि. तृतीय (Scale: ३६,१९२ | ग्रेड: १,२०६ | सिमा: ६)</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="मा.वि. तृतीय">मा.वि. तृतीय (Scale: ४३,६८९ | ग्रेड: १,४५६ | सिमा: ८)</option>
+                      <option value="मा.वि. द्वितीय">मा.वि. द्वितीय (Scale: ४७,३८० | सिमा: ८)</option>
+                      <option value="नि.मा.वि. तृतीय">नि.मा.वि. तृतीय (Scale: ३४,७३० | ग्रेड: १,१५८ | सिमा: ८)</option>
+                      <option value="नि.मा.वि. द्वितीय">नि.मा.वि. द्वितीय (Scale: ३८,४४० | सिमा: ८)</option>
+                      <option value="प्रा.वि. द्वितीय">प्रा.वि. द्वितीय (Scale: ३४,७३० | ग्रेड: १,१५८ | सिमा: ८)</option>
+                      <option value="प्रा.वि. तृतीय">प्रा.वि. तृतीय (Scale: ३२,९०२ | ग्रेड: १,०९७ | सिमा: ६)</option>
+                    </>
+                  )}
                   <option value="लेखापाल">लेखापाल (Scale: १८,०००)</option>
                   <option value="का. सहयोगी">का. सहयोगी (Scale: १७,५००)</option>
                   <option value="स.का.">स.का. (Scale: १६,०००)</option>
                   <option value="श्रेणी विहीन">श्रेणी विहीन (Scale: १३,०००)</option>
                   <option value="नगर शिक्षक">नगर शिक्षक (Scale: १७,०००)</option>
-                  <option value="राहत शिक्षक">राहत शिक्षक</option>
+                  <option value="राहत शिक्षक">राहत शिक्षक ({is2083 ? '३८,२०३ / ३६,१९२' : '३४,७३० / ३२,९०२'})</option>
                   <option value="अन्य">अन्य पद</option>
                 </select>
               </div>
@@ -305,9 +315,16 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-blue-50/40 p-3 rounded-lg border border-blue-100">
               <div>
-                <label className="block text-xs font-medium text-stone-700 mb-1">
-                  ग्रेड संख्या
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-stone-700">
+                    ग्रेड संख्या
+                  </label>
+                  {formData.category === 'permanent' && (
+                    <span className="text-[10px] font-semibold text-blue-700">
+                      अधिकतम: {getMaxGradeForDesignation(formData.designation)}
+                    </span>
+                  )}
+                </div>
                 <input
                   type="number"
                   min={0}
@@ -316,6 +333,11 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
                   onChange={(e) => handleNumberChange('gradeCount', e.target.value)}
                   className="w-full text-xs px-3 py-2 border border-stone-300 rounded font-mono focus:ring-1 focus:ring-blue-500 bg-white"
                 />
+                {formData.category === 'permanent' && formData.gradeCount >= getMaxGradeForDesignation(formData.designation) && (
+                  <p className="text-[10px] text-amber-700 mt-0.5 leading-tight">
+                    * अधिकतम सीमा पुगेको (ग्रेड वृद्धि नहुने)
+                  </p>
+                )}
               </div>
 
               <div>
@@ -408,6 +430,40 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
                   onChange={(e) => handleNumberChange('mahangiBhatta', e.target.value)}
                   className="w-full text-xs px-3 py-2 border border-stone-300 rounded font-mono bg-white"
                 />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-stone-700">
+                    प्रोत्साहन भत्ता (१०%)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const autoVal = Math.round((Number(formData.basicSalary) || 0) * 0.10 * 100) / 100;
+                      handleNumberChange('protsahanBhatta', autoVal.toString());
+                    }}
+                    className="inline-flex items-center gap-1 text-[10px] text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1.5 py-0.5 rounded font-medium transition-colors cursor-pointer"
+                    title="तलब स्केलको १०% स्वतः हिसाब गरी भर्नुहोस्"
+                  >
+                    <span>स्केलको १०% स्वतः</span>
+                    <span className="font-mono font-bold">
+                      (रू {Math.round((Number(formData.basicSalary) || 0) * 0.10)})
+                    </span>
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.protsahanBhatta !== undefined ? formData.protsahanBhatta : ''}
+                  onChange={(e) => handleNumberChange('protsahanBhatta', e.target.value)}
+                  className="w-full text-xs px-3 py-2 border border-stone-300 rounded font-mono bg-white focus:ring-1 focus:ring-blue-500 font-medium text-stone-800"
+                  placeholder={`१०% = रू ${Math.round((Number(formData.basicSalary) || 0) * 0.10)}`}
+                />
+                <div className="flex items-center justify-between mt-1 text-[10px] text-stone-500">
+                  <span>स्केलको १०% स्वतः भरिने</span>
+                  <span className="text-emerald-700 font-medium">म्यानुअल टाइप गर्न मिल्ने</span>
+                </div>
               </div>
 
               <div>

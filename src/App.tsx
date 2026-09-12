@@ -420,6 +420,38 @@ export default function App() {
     );
   };
 
+  // Handler: Auto-fill Protsahan Bhatta (10% of scale) for all teachers in active fiscal year
+  const handleAutoFillProtsahan = () => {
+    setFiscalYears((prev) =>
+      prev.map((yr) => {
+        if (yr.fiscalYear === currentPayroll.fiscalYear) {
+          const updatedTeachers = yr.teachers.map((t) => {
+            const protsahan = Math.round(t.basicSalary * 0.10 * 100) / 100;
+            return calculateTeacherPayroll(
+              {
+                ...t,
+                protsahanBhatta: protsahan
+              },
+              yr.monthsCount,
+              autoCalculate,
+              {
+                includeDashain: yr.includeDashain ?? true,
+                includePoshak: yr.includePoshak ?? true,
+                quarter: yr.selectedQuarter as any,
+                useBaisakhGrade: yr.selectedQuarter === 'three_months'
+              }
+            );
+          });
+          return {
+            ...yr,
+            teachers: updatedTeachers
+          };
+        }
+        return yr;
+      })
+    );
+  };
+
   // Handler: Save New Year
   const handleSaveNewYear = (newYear: FiscalYearPayroll) => {
     setFiscalYears((prev) => [newYear, ...prev]);
@@ -635,6 +667,7 @@ export default function App() {
               onDeleteTeacher={handleDeleteTeacher}
               onToggleHideTeacher={handleToggleHideTeacher}
               onOpenGradeSplitView={() => setActiveTab('grade-split')}
+              onAutoFillProtsahan={handleAutoFillProtsahan}
             />
           </>
         )}
@@ -653,6 +686,7 @@ export default function App() {
         nextSn={currentPayroll.teachers.length + 1}
         monthsCount={currentPayroll.monthsCount}
         useNepaliDigits={useNepaliDigits}
+        currentFiscalYear={currentPayroll.fiscalYear}
       />
 
       <YearPeriodModal

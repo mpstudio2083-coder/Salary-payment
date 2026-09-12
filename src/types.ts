@@ -12,6 +12,7 @@ export interface TeacherRecord {
   bimaThap: number; // बिमा थप (usually 400)
   praABhatta: number; // प्र.अ. भत्ता
   mahangiBhatta: number; // महँगी भत्ता (usually 5000)
+  protsahanBhatta?: number; // प्रोत्साहन भत्ता
   anyaBhatta: number; // अन्य भत्ता
   
   // Deductions (कट्टी रकम)
@@ -114,6 +115,7 @@ export interface MonthlyTeacherPayroll {
   bimaThap: number;
   praABhatta: number;
   mahangiBhatta: number;
+  protsahanBhatta?: number;
   anyaBhatta: number;
   
   // Special seasonal payments

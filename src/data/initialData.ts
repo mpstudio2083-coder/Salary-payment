@@ -19,16 +19,17 @@ const rawTeachers2082: TeacherRecord[] = [
     name: 'सन्तलाल सोरेन',
     designation: 'मा.वि. तृतीय',
     category: 'permanent',
-    basicSalary: 43680,
+    basicSalary: 43689,
     gradeCount: 8,
     gradeRate: 1456,
     gradeAmount: 11648,
-    koshThap: 5532.80,
+    koshThap: 5533.70,
     bimaThap: 400,
     praABhatta: 1500,
     mahangiBhatta: 5000,
+    protsahanBhatta: 4368.9,
     anyaBhatta: 0,
-    koshKatti: 11065.60,
+    koshKatti: 11067.40,
     bimaKatti: 800,
     citKatti: 31500,
     dashainPoshakBhatta: 0
@@ -39,16 +40,17 @@ const rawTeachers2082: TeacherRecord[] = [
     name: 'सुमन पोखरेल',
     designation: 'मा.वि. तृतीय',
     category: 'permanent',
-    basicSalary: 43680,
+    basicSalary: 43689,
     gradeCount: 3,
     gradeRate: 1456,
     gradeAmount: 4368,
-    koshThap: 4804.80,
+    koshThap: 4805.70,
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 4368.9,
     anyaBhatta: 300,
-    koshKatti: 9609.60,
+    koshKatti: 9611.40,
     bimaKatti: 800,
     citKatti: 4000,
     dashainPoshakBhatta: 0
@@ -59,16 +61,17 @@ const rawTeachers2082: TeacherRecord[] = [
     name: 'जीत बहादुर राई',
     designation: 'मा.वि. तृतीय',
     category: 'permanent',
-    basicSalary: 43680,
+    basicSalary: 43689,
     gradeCount: 0,
-    gradeRate: 0,
+    gradeRate: 1456,
     gradeAmount: 0,
-    koshThap: 4368.00,
+    koshThap: 4368.90,
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 4368.9,
     anyaBhatta: 0,
-    koshKatti: 8736.00,
+    koshKatti: 8737.80,
     bimaKatti: 800,
     citKatti: 4000,
     dashainPoshakBhatta: 0
@@ -79,16 +82,17 @@ const rawTeachers2082: TeacherRecord[] = [
     name: 'सुरेश कुमार मण्डल',
     designation: 'मा.वि. तृतीय',
     category: 'permanent',
-    basicSalary: 43680,
+    basicSalary: 43689,
     gradeCount: 0,
-    gradeRate: 0,
+    gradeRate: 1456,
     gradeAmount: 0,
-    koshThap: 4368.00,
+    koshThap: 4368.90,
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 4368.9,
     anyaBhatta: 0,
-    koshKatti: 8736.00,
+    koshKatti: 8737.80,
     bimaKatti: 800,
     citKatti: 4000,
     dashainPoshakBhatta: 0
@@ -107,6 +111,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 3473,
     anyaBhatta: 0,
     koshKatti: 8798.80,
     bimaKatti: 800,
@@ -127,6 +132,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 3473,
     anyaBhatta: 0,
     koshKatti: 8567.20,
     bimaKatti: 800,
@@ -147,6 +153,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 3473,
     anyaBhatta: 255,
     koshKatti: 7640.80,
     bimaKatti: 800,
@@ -167,6 +174,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 3473,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -187,6 +195,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 3290.2,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -207,6 +216,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 3473,
     anyaBhatta: 0,
     koshKatti: 8798.80,
     bimaKatti: 800,
@@ -227,6 +237,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 3290.2,
     anyaBhatta: 0,
     koshKatti: 7896.80,
     bimaKatti: 800,
@@ -247,6 +258,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 3290.2,
     anyaBhatta: 0,
     koshKatti: 7896.80,
     bimaKatti: 800,
@@ -267,6 +279,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 3290.2,
     anyaBhatta: 0,
     koshKatti: 7896.80,
     bimaKatti: 800,
@@ -287,6 +300,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 400,
     praABhatta: 0,
     mahangiBhatta: 5000,
+    protsahanBhatta: 3290.2,
     anyaBhatta: 0,
     koshKatti: 7896.80,
     bimaKatti: 800,
@@ -307,6 +321,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
+    protsahanBhatta: 1700,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -327,6 +342,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
+    protsahanBhatta: 1700,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -347,6 +363,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
+    protsahanBhatta: 1800,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -367,6 +384,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
+    protsahanBhatta: 1750,
     anyaBhatta: 1000,
     koshKatti: 0,
     bimaKatti: 0,
@@ -387,6 +405,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
+    protsahanBhatta: 1700,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -407,6 +426,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
+    protsahanBhatta: 1600,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -427,6 +447,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
+    protsahanBhatta: 1600,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -447,6 +468,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
+    protsahanBhatta: 1300,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -467,6 +489,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
+    protsahanBhatta: 1700,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -481,21 +504,103 @@ export const initialTeachers2082: TeacherRecord[] = rawTeachers2082.map(t => cal
   includePoshak: false
 }));
 
-// Generate 2083/84 (New Year from 2083 Shrawan to 2084 Asar: with +1 grade for permanent teachers respecting legal limits)
+// Salary scale & grade rate resolver by Fiscal Year and Designation
+export function getYearScaleConfig(fiscalYear: string, designation: string, teacherName?: string): {
+  basicSalary: number;
+  gradeRate: number;
+  maxGrade: number;
+} {
+  const is2083OrLater = fiscalYear.includes('२०८३') || fiscalYear.includes('2083') || fiscalYear.includes('२०८४') || fiscalYear.includes('2084');
+  const d = (designation || '').trim();
+  const name = (teacherName || '').trim();
+
+  if (is2083OrLater) {
+    // 2083/84 Scaled Salary & Grade Rates (New Rules)
+    if (d.includes('मा.वि.') && !d.includes('नि.मा.वि.') && !d.includes('प्रा.वि.')) {
+      return { basicSalary: 48058, gradeRate: 1602, maxGrade: 8 };
+    }
+    if (d.includes('नि.मा.वि.')) {
+      return { basicSalary: 38203, gradeRate: 1273, maxGrade: 8 };
+    }
+    if (d.includes('प्रा.वि.') && (d.includes('द्वितीय') || d.includes('२') || d.includes('2') || d.includes('सकन्ड') || d.includes('second'))) {
+      return { basicSalary: 38203, gradeRate: 1273, maxGrade: 8 };
+    }
+    if (d.includes('प्रा.वि.')) {
+      return { basicSalary: 36192, gradeRate: 1206, maxGrade: 6 };
+    }
+    if (d.includes('राहत')) {
+      if (name.includes('धर्म राज') || d.includes('नि.मा.वि.')) {
+        return { basicSalary: 38203, gradeRate: 1273, maxGrade: 0 };
+      }
+      return { basicSalary: 36192, gradeRate: 1206, maxGrade: 0 };
+    }
+  } else {
+    // 2082/83 Scaled Salary & Grade Rates
+    if (d.includes('मा.वि.') && !d.includes('नि.मा.वि.') && !d.includes('प्रा.वि.')) {
+      return { basicSalary: 43689, gradeRate: 1456, maxGrade: 8 };
+    }
+    if (d.includes('नि.मा.वि.')) {
+      return { basicSalary: 34730, gradeRate: 1158, maxGrade: 8 };
+    }
+    if (d.includes('प्रा.वि.') && (d.includes('द्वितीय') || d.includes('२') || d.includes('2') || d.includes('सकन्ड') || d.includes('second'))) {
+      return { basicSalary: 34730, gradeRate: 1158, maxGrade: 8 };
+    }
+    if (d.includes('प्रा.वि.')) {
+      return { basicSalary: 32902, gradeRate: 1097, maxGrade: 6 };
+    }
+    if (d.includes('राहत')) {
+      if (name.includes('धर्म राज') || d.includes('नि.मा.वि.')) {
+        return { basicSalary: 34730, gradeRate: 1158, maxGrade: 0 };
+      }
+      return { basicSalary: 32902, gradeRate: 1097, maxGrade: 0 };
+    }
+  }
+
+  // Other staff / default
+  if (d.includes('लेखापाल')) return { basicSalary: 18000, gradeRate: 0, maxGrade: 0 };
+  if (d.includes('सहयोगी')) return { basicSalary: 17500, gradeRate: 0, maxGrade: 0 };
+  if (d.includes('स.का.')) return { basicSalary: 16000, gradeRate: 0, maxGrade: 0 };
+  if (d.includes('श्रेणी विहीन')) return { basicSalary: 13000, gradeRate: 0, maxGrade: 0 };
+  if (d.includes('नगर शिक्षक')) return { basicSalary: 17000, gradeRate: 0, maxGrade: 0 };
+  if (d.includes('बालविकास')) return { basicSalary: 17000, gradeRate: 0, maxGrade: 0 };
+
+  return { basicSalary: 0, gradeRate: 0, maxGrade: 8 };
+}
+
+// Generate 2083/84 (New Year from 2083 Shrawan to 2084 Asar: with 2083/84 scale & grade caps)
 export const initialTeachers2083: TeacherRecord[] = rawTeachers2082.map(t => {
-  const maxGrade = getMaxGradeForDesignation(t.designation);
-  const nextGradeCount = t.category === 'permanent' ? Math.min(maxGrade, t.gradeCount + 1) : t.gradeCount;
-  const gradeRate = t.gradeRate || (nextGradeCount > 0 ? Math.round(t.basicSalary / 30) : 0);
+  const scaleConfig = getYearScaleConfig('२०८३/८४', t.designation, t.name);
+  const basicSalary = scaleConfig.basicSalary > 0 ? scaleConfig.basicSalary : t.basicSalary;
+  const gradeRate = scaleConfig.gradeRate > 0 ? scaleConfig.gradeRate : (t.gradeRate || Math.round(basicSalary / 30));
+  const maxGrade = scaleConfig.maxGrade || getMaxGradeForDesignation(t.designation);
+
+  // Grade increment constraint:
+  // "8 grade ni ma vi 8 grade pra vi second 8 grade pravi third 6 grade yo samma hune ko grad bridhhi nagarnu"
+  let nextGradeCount = 0;
+  if (t.category === 'permanent') {
+    if (t.gradeCount >= maxGrade) {
+      nextGradeCount = t.gradeCount; // Grade reached maximum legal limit, no increment
+    } else {
+      nextGradeCount = Math.min(maxGrade, t.gradeCount + 1);
+    }
+  } else {
+    nextGradeCount = 0;
+  }
+
   const gradeAmount = nextGradeCount * gradeRate;
+  const koshThap = t.category === 'permanent' ? Math.round((basicSalary + gradeAmount) * 0.10 * 100) / 100 : 0;
+  const koshKatti = t.category === 'permanent' ? Math.round((basicSalary + gradeAmount) * 0.20 * 100) / 100 : 0;
 
   return calculateTeacherPayroll({
     ...t,
     id: t.id.replace('t-', 't-2083-'),
+    basicSalary,
     gradeCount: nextGradeCount,
     gradeRate,
     gradeAmount,
-    koshThap: t.category === 'permanent' ? Math.round((t.basicSalary + gradeAmount) * 0.10 * 100) / 100 : 0,
-    koshKatti: t.category === 'permanent' ? Math.round((t.basicSalary + gradeAmount) * 0.20 * 100) / 100 : 0,
+    koshThap,
+    koshKatti,
+    protsahanBhatta: Math.round(basicSalary * 0.10 * 100) / 100,
   }, 3, true, {
     includeDashain: true,
     includePoshak: false

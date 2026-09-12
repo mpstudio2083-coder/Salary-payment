@@ -40,10 +40,13 @@ export function calculateTeacherMonthly(
   const bimaThap = isPermanent ? (Number(teacher.bimaThap) || 400) : (Number(teacher.bimaThap) || 0);
   const praABhatta = Number(teacher.praABhatta) || 0;
   const mahangiBhatta = Number(teacher.mahangiBhatta) || 0;
+  const protsahanBhatta = (teacher.protsahanBhatta !== undefined && teacher.protsahanBhatta !== null)
+    ? Number(teacher.protsahanBhatta)
+    : Math.round(basic * 0.10 * 100) / 100;
   const anyaBhatta = Number(teacher.anyaBhatta) || 0;
 
   // Regular monthly gross (नियमित मासिक जम्मा)
-  const regularMonthlyGross = Math.round((basic + gradeAmount + koshThap + bimaThap + praABhatta + mahangiBhatta + anyaBhatta) * 100) / 100;
+  const regularMonthlyGross = Math.round((basic + gradeAmount + koshThap + bimaThap + praABhatta + mahangiBhatta + protsahanBhatta + anyaBhatta) * 100) / 100;
 
   // Dashain allowance check: Shrawan payment (साउन महिना) - respects manual entry
   let dashainBhatta = 0;
@@ -104,6 +107,7 @@ export function calculateTeacherMonthly(
     bimaThap,
     praABhatta,
     mahangiBhatta,
+    protsahanBhatta,
     anyaBhatta,
     dashainBhatta,
     poshakBhatta,
@@ -143,6 +147,7 @@ export function calculateMonthlyTotals(monthlyList: MonthlyTeacherPayroll[]) {
       acc.bimaThap += m.bimaThap;
       acc.praABhatta += m.praABhatta;
       acc.mahangiBhatta += m.mahangiBhatta;
+      acc.protsahanBhatta += m.protsahanBhatta || 0;
       acc.anyaBhatta += m.anyaBhatta;
       acc.dashainBhatta += m.dashainBhatta;
       acc.poshakBhatta += m.poshakBhatta;
@@ -163,6 +168,7 @@ export function calculateMonthlyTotals(monthlyList: MonthlyTeacherPayroll[]) {
       bimaThap: 0,
       praABhatta: 0,
       mahangiBhatta: 0,
+      protsahanBhatta: 0,
       anyaBhatta: 0,
       dashainBhatta: 0,
       poshakBhatta: 0,

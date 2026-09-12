@@ -1,5 +1,6 @@
 import { FiscalYearPayroll, TeacherRecord } from '../types';
-import { initialFiscalYears } from '../data/initialData';
+import { initialFiscalYears, getYearScaleConfig } from '../data/initialData';
+import { calculateTeacherPayroll, getMaxGradeForDesignation } from './calculations';
 
 export const CANONICAL_TEACHER_ORDER = [
   'सन्तलाल सोरेन',
@@ -30,7 +31,7 @@ export const CANONICAL_TEACHER_ORDER = [
 /**
  * Sanitizes and deduplicates teachers in fiscal years.
  * Guarantees that every teacher in every fiscal year has a strictly unique `id`
- * and sequential `sn`.
+ * and sequential `sn`, and aligns salary scales with government rules.
  */
 export function sanitizeFiscalYears(rawYears: FiscalYearPayroll[]): FiscalYearPayroll[] {
   if (!Array.isArray(rawYears) || rawYears.length === 0) {
@@ -39,7 +40,6 @@ export function sanitizeFiscalYears(rawYears: FiscalYearPayroll[]): FiscalYearPa
 
   // Filter out any un-entered placeholder years (like old 2080 or 2081 if not customized by user)
   let yearsList = rawYears.filter(y => {
-    // Keep 2082/83, 2083/84 and any newly created year by user (excluding unentered default 2080/81)
     if (y.fiscalYear === '२०८०/८१' || y.fiscalYear === '२०८१/८२') {
       return false;
     }
@@ -67,7 +67,10 @@ export function sanitizeFiscalYears(rawYears: FiscalYearPayroll[]): FiscalYearPa
     const seenNames = new Set<string>();
     const seenIds = new Set<string>();
 
-    // 1. Process existing teachers, removing duplicate names or assigning unique IDs
+    const is2083 = yr.fiscalYear.includes('२०८३') || yr.fiscalYear.includes('2083');
+    const is2082 = yr.fiscalYear.includes('२०८२') || yr.fiscalYear.includes('2082');
+
+    // 1. Process existing teachers, updating salary scale if necessary and removing duplicate names
     existingTeachers.forEach((t, idx) => {
       const trimmedName = (t.name || '').trim();
       if (!trimmedName) return;
@@ -85,11 +88,47 @@ export function sanitizeFiscalYears(rawYears: FiscalYearPayroll[]): FiscalYearPa
       }
       seenIds.add(uniqueId);
 
-      uniqueTeachers.push({
-        ...t,
-        id: uniqueId,
-        sn: idx + 1
-      });
+      let teacherData = { ...t, id: uniqueId, sn: idx + 1 };
+
+      // Apply government scale upgrades
+      if (is2082) {
+        // Upgrade Ma.Vi. scale from 43680 to 43689
+        if (teacherData.designation?.includes('मा.वि.') && !teacherData.designation.includes('नि.मा.वि.') && !teacherData.designation.includes('प्रा.वि.')) {
+          if (teacherData.basicSalary === 43680 || !teacherData.basicSalary) {
+            teacherData.basicSalary = 43689;
+            teacherData.gradeRate = 1456;
+            teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
+          }
+        }
+      } else if (is2083) {
+        // Apply 2083/84 salary scales & grade rate
+        const scaleConfig = getYearScaleConfig('२०८३/८४', teacherData.designation, teacherData.name);
+        if (scaleConfig.basicSalary > 0) {
+          // If teacher still has old 2082 scale, update to 2083 scale
+          if (teacherData.basicSalary < scaleConfig.basicSalary || teacherData.basicSalary === 43680 || teacherData.basicSalary === 43689) {
+            teacherData.basicSalary = scaleConfig.basicSalary;
+            teacherData.gradeRate = scaleConfig.gradeRate;
+            
+            // Respect legal grade limits: "yo samma hune ko grad bridhhi nagarnu"
+            const maxGrade = scaleConfig.maxGrade || getMaxGradeForDesignation(teacherData.designation);
+            if (teacherData.category === 'permanent') {
+              if (teacherData.gradeCount > maxGrade) {
+                teacherData.gradeCount = maxGrade;
+              }
+            }
+            teacherData.gradeAmount = teacherData.gradeCount * teacherData.gradeRate;
+            teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
+          }
+        }
+      }
+
+      // Auto-fill Protsahan Bhatta as 10% of scale if undefined or 0
+      if (teacherData.protsahanBhatta === undefined || teacherData.protsahanBhatta === 0 || teacherData.protsahanBhatta === null) {
+        teacherData.protsahanBhatta = Math.round(teacherData.basicSalary * 0.10 * 100) / 100;
+        teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
+      }
+
+      uniqueTeachers.push(teacherData);
     });
 
     // 2. If initialYr has default teachers that don't exist yet, add them safely

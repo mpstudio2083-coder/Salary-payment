@@ -21,6 +21,7 @@ interface PayrollTableProps {
   onDeleteTeacher: (id: string) => void;
   onToggleHideTeacher?: (id: string) => void;
   onOpenGradeSplitView?: () => void;
+  onAutoFillProtsahan?: () => void;
 }
 
 export const PayrollTable: React.FC<PayrollTableProps> = ({
@@ -39,7 +40,8 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
   onEditTeacher,
   onDeleteTeacher,
   onToggleHideTeacher,
-  onOpenGradeSplitView
+  onOpenGradeSplitView,
+  onAutoFillProtsahan
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDesignation, setFilterDesignation] = useState('ALL');
@@ -292,6 +294,23 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                 </button>
               )}
             </div>
+
+            {/* Quick action: Auto-fill 10% Protsahan for all */}
+            {onAutoFillProtsahan && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('के तपाईं सबै शिक्षक तथा कर्मचारीहरूको प्रोत्साहन भत्ता तलब स्केलको १०% अनुसार स्वतः भर्न चाहनुहुन्छ?')) {
+                    onAutoFillProtsahan();
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-900 shadow-2xs transition-colors cursor-pointer"
+                title="सबै शिक्षकहरूको प्रोत्साहन भत्ता तलब स्केलको १०% स्वतः हिसाब गरी भर्नुहोस्"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                <span>१०% प्रोत्साहन स्वतः भर्ने</span>
+              </button>
+            )}
           </div>
 
           <div className="text-xs text-stone-600 flex items-center gap-2">
@@ -340,7 +359,7 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                 </th>
 
                 {/* Allowances */}
-                <th colSpan={3} className="border border-stone-300 px-2 py-1.5 text-center font-bold bg-amber-50/70">
+                <th colSpan={4} className="border border-stone-300 px-2 py-1.5 text-center font-bold bg-amber-50/70">
                   भत्ता
                 </th>
 
@@ -415,6 +434,9 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                 </th>
                 <th className="border border-stone-300 px-1.5 py-1 text-right font-semibold bg-amber-50/70 min-w-[55px]">
                   महँगी
+                </th>
+                <th className="border border-stone-300 px-1.5 py-1 text-right font-semibold bg-amber-50/70 min-w-[55px]">
+                  प्रोत्साहन
                 </th>
                 <th className="border border-stone-300 px-1.5 py-1 text-right font-semibold bg-amber-50/70 min-w-[50px]">
                   अन्य
@@ -510,6 +532,11 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                     {/* Mahangi Bhatta */}
                     <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-amber-50/20">
                       {teacher.mahangiBhatta > 0 ? format(teacher.mahangiBhatta) : '-'}
+                    </td>
+
+                    {/* Protsahan Bhatta */}
+                    <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-amber-50/20">
+                      {teacher.protsahanBhatta && teacher.protsahanBhatta > 0 ? format(teacher.protsahanBhatta) : '-'}
                     </td>
 
                     {/* Anya Bhatta */}
@@ -660,6 +687,9 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                 </td>
                 <td className="border border-stone-400 px-1.5 py-2 text-right font-mono">
                   {format(totals.mahangiBhatta)}
+                </td>
+                <td className="border border-stone-400 px-1.5 py-2 text-right font-mono">
+                  {format(totals.protsahanBhatta || 0)}
                 </td>
                 <td className="border border-stone-400 px-1.5 py-2 text-right font-mono">
                   {format(totals.anyaBhatta)}

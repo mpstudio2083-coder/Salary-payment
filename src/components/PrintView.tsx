@@ -111,7 +111,7 @@ export const PrintView: React.FC<PrintViewProps> = ({
                 <th rowSpan={2} className="border border-black p-1 text-right font-bold min-w-[45px]">
                   बिमा थप
                 </th>
-                <th colSpan={3} className="border border-black p-1 text-center font-bold">
+                <th colSpan={4} className="border border-black p-1 text-center font-bold">
                   भत्ता
                 </th>
                 <th rowSpan={2} className="border border-black p-1 text-right font-bold min-w-[70px]">
@@ -152,6 +152,7 @@ export const PrintView: React.FC<PrintViewProps> = ({
                 <th className="border border-black p-0.5 text-right font-semibold">रकम</th>
                 <th className="border border-black p-0.5 text-right font-semibold">प्र.अ.</th>
                 <th className="border border-black p-0.5 text-right font-semibold">महँगी</th>
+                <th className="border border-black p-0.5 text-right font-semibold">प्रोत्साहन</th>
                 <th className="border border-black p-0.5 text-right font-semibold">अन्य</th>
                 <th className="border border-black p-0.5 text-right font-semibold">क. कोष</th>
                 <th className="border border-black p-0.5 text-right font-semibold">बिमा</th>
@@ -175,6 +176,7 @@ export const PrintView: React.FC<PrintViewProps> = ({
                   <td className="border border-black p-1 text-right">{t.category === 'permanent' && t.bimaThap > 0 ? format(t.bimaThap) : ''}</td>
                   <td className="border border-black p-0.5 text-right">{t.praABhatta > 0 ? format(t.praABhatta) : ''}</td>
                   <td className="border border-black p-0.5 text-right">{t.mahangiBhatta > 0 ? format(t.mahangiBhatta) : ''}</td>
+                  <td className="border border-black p-0.5 text-right">{t.protsahanBhatta && t.protsahanBhatta > 0 ? format(t.protsahanBhatta) : ''}</td>
                   <td className="border border-black p-0.5 text-right">{t.anyaBhatta > 0 ? format(t.anyaBhatta) : ''}</td>
                   <td className="border border-black p-1 text-right font-semibold">{format(t.monthlyGross)}</td>
                   <td className="border border-black p-1 text-right">{t.dashainBhatta && t.dashainBhatta > 0 ? format(t.dashainBhatta) : ''}</td>
@@ -209,6 +211,7 @@ export const PrintView: React.FC<PrintViewProps> = ({
                 <td className="border border-black p-1 text-right">{format(totals.bimaThap)}</td>
                 <td className="border border-black p-0.5 text-right">{format(totals.praABhatta)}</td>
                 <td className="border border-black p-0.5 text-right">{format(totals.mahangiBhatta)}</td>
+                <td className="border border-black p-0.5 text-right">{format(totals.protsahanBhatta || 0)}</td>
                 <td className="border border-black p-0.5 text-right">{format(totals.anyaBhatta)}</td>
                 <td className="border border-black p-1 text-right font-bold">{format(totals.monthlyGross)}</td>
                 <td className="border border-black p-1 text-right font-extrabold">{format(totals.dashainBhatta)}</td>
