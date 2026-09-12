@@ -59,12 +59,15 @@ export const MonthlyDashboard: React.FC<MonthlyDashboardProps> = ({
   const num = (val: number | string | undefined | null) =>
     useNepaliDigits ? toNepaliNumber(val) : (val !== undefined && val !== null ? val.toString() : '0');
 
+  // Filter active teachers (respecting hide/show flag)
+  const activeTeachers = teachers.filter((t) => !t.isHidden);
+
   // Compute records for selected month
-  const monthlyRecords = calculateAllTeachersForMonth(teachers, selectedMonth, allowanceSettings);
+  const monthlyRecords = calculateAllTeachersForMonth(activeTeachers, selectedMonth, allowanceSettings);
   const totals = calculateMonthlyTotals(monthlyRecords);
 
   // Compute 12-month summary matrix
-  const annualSummary = generateAnnualMonthsSummary(teachers, allowanceSettings);
+  const annualSummary = generateAnnualMonthsSummary(activeTeachers, allowanceSettings);
   const annualGrandTotal = annualSummary.reduce(
     (acc, m) => {
       acc.regularGross += m.regularGross;

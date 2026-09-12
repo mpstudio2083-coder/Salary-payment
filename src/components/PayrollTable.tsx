@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Check, Search, Filter, Gift, Shirt, Calendar, Info, Calculator, Sparkles, Clock } from 'lucide-react';
+import { Edit2, Trash2, Check, Search, Filter, Gift, Shirt, Calendar, Info, Sparkles, Clock, Eye, EyeOff, Users, X, CheckSquare, Square } from 'lucide-react';
 import { TeacherRecord, SchoolInfo } from '../types';
 import { formatNepaliCurrency, toNepaliNumber } from '../utils/nepaliNumber';
 import { calculateGrandTotals } from '../utils/calculations';
@@ -19,7 +19,7 @@ interface PayrollTableProps {
   onSelectQuarter?: (quarter: 'first' | 'second' | 'third' | 'fourth' | 'yearly' | 'nine_months' | 'three_months') => void;
   onEditTeacher: (teacher: TeacherRecord) => void;
   onDeleteTeacher: (id: string) => void;
-  onOpenPartialSalaryModal?: (teacherId?: string) => void;
+  onToggleHideTeacher?: (id: string) => void;
   onOpenGradeSplitView?: () => void;
 }
 
@@ -38,14 +38,24 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
   onSelectQuarter,
   onEditTeacher,
   onDeleteTeacher,
-  onOpenPartialSalaryModal,
+  onToggleHideTeacher,
   onOpenGradeSplitView
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDesignation, setFilterDesignation] = useState('ALL');
+  const [showHiddenTeachers, setShowHiddenTeachers] = useState(false);
+  const [isHideManagerModalOpen, setIsHideManagerModalOpen] = useState(false);
+  const [modalSearch, setModalSearch] = useState('');
+
+  const hiddenCount = teachers.filter((t) => t.isHidden).length;
 
   // Filter teachers
   const filteredTeachers = teachers.filter((t) => {
+    // Hide filter
+    if (!showHiddenTeachers && t.isHidden) {
+      return false;
+    }
+
     const matchesSearch = 
       t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.designation.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -61,7 +71,7 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
     return true;
   });
 
-  const totals = calculateGrandTotals(teachers);
+  const totals = calculateGrandTotals(filteredTeachers);
 
   const format = (val: number | undefined | null) => 
     formatNepaliCurrency(val, { nepaliDigits: useNepaliDigits });
@@ -92,7 +102,7 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                   }`}
                   title="साउन - असोज: साउन महिनामा दसैं भत्ता भुक्तानी गरिन्छ"
                 >
-                  प्रथम (साउन - असोज) 🎁
+                  पहिलो (साउन - असोज) 🎁
                 </button>
                 <button
                   onClick={() => onSelectQuarter('second')}
@@ -162,7 +172,7 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
             )}
           </div>
 
-          {/* Quick Action Tools: 9/3 Split & Partial Day Calculator */}
+          {/* Quick Action Tools: 9/3 Split */}
           <div className="flex flex-wrap items-center gap-2">
             {onOpenGradeSplitView && (
               <button
@@ -173,18 +183,6 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-700" />
                 <span>९ र ३ महिना ग्रेड विभाजन तालिका</span>
-              </button>
-            )}
-
-            {onOpenPartialSalaryModal && (
-              <button
-                type="button"
-                onClick={() => onOpenPartialSalaryModal()}
-                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 shadow-2xs transition-colors"
-                title="१ महिना १७ दिन वा आंशिक अवधिको तलब हिसाब क्याल्कुलेटर"
-              >
-                <Calculator className="w-3.5 h-3.5 text-blue-700" />
-                <span>१ महिना १७ दिन क्याल्कुलेटर</span>
               </button>
             )}
           </div>
@@ -229,9 +227,9 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
           </div>
         </div>
 
-        {/* Row 2: Search, Level Filter & Info */}
+        {/* Row 2: Search, Level Filter, Hide/Show Management & Count Info */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Search Box */}
             <div className="relative">
               <Search className="w-4 h-4 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -240,7 +238,7 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                 placeholder="शिक्षकको नाम वा पद खोज्नुहोस्..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs bg-stone-50 border border-stone-300 rounded focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-56 sm:w-64"
+                className="pl-8 pr-3 py-1.5 text-xs bg-stone-50 border border-stone-300 rounded focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-52 sm:w-60"
               />
             </div>
 
@@ -259,6 +257,40 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                 <option value="PRAVI">प्रा.वि. शिक्षक</option>
                 <option value="STAFF">कर्मचारी तथा अन्य</option>
               </select>
+            </div>
+
+            {/* Teacher Hide/Show Management Button */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setIsHideManagerModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 shadow-2xs transition-colors"
+                title="आवश्यकता अनुसार शिक्षकहरूलाई भर्पाई तालिकाबाट लुकाउन वा देखाउन"
+              >
+                <Users className="w-3.5 h-3.5 text-blue-600" />
+                <span>शिक्षक Hide/Show</span>
+                {hiddenCount > 0 && (
+                  <span className="bg-amber-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                    {num(hiddenCount)} लुकाइएको
+                  </span>
+                )}
+              </button>
+
+              {hiddenCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowHiddenTeachers(!showHiddenTeachers)}
+                  className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-colors ${
+                    showHiddenTeachers
+                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                      : 'bg-stone-100 text-stone-600 border-stone-300 hover:bg-stone-200'
+                  }`}
+                  title="लुकाइएका शिक्षकहरू पनि तालिकामा हेर्ने वा छुपाउने"
+                >
+                  {showHiddenTeachers ? <Eye className="w-3.5 h-3.5 text-amber-700" /> : <EyeOff className="w-3.5 h-3.5 text-stone-500" />}
+                  <span>{showHiddenTeachers ? 'लुकाइएका देखाइएको' : 'लुकाइएका नदेखाउने'}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -425,7 +457,14 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
 
                     {/* Name (Sticky) */}
                     <td className="border border-stone-300 px-3 py-1.5 font-bold text-stone-900 sticky left-[38px] bg-inherit z-10 whitespace-nowrap">
-                      {teacher.name}
+                      <div className="flex items-center gap-1.5">
+                        <span className={teacher.isHidden ? 'text-stone-500 font-medium' : ''}>{teacher.name}</span>
+                        {teacher.isHidden && (
+                          <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.2 rounded font-normal">
+                            लुकाइएको
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Designation */}
@@ -557,13 +596,18 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                     {/* Actions */}
                     <td className="border border-stone-300 px-2 py-1.5 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        {onOpenPartialSalaryModal && (
+                        {onToggleHideTeacher && (
                           <button
-                            onClick={() => onOpenPartialSalaryModal(teacher.id)}
-                            title="१ महिना १७ दिन वा आंशिक दिनको तलब हिसाब क्याल्कुलेटर"
-                            className="p-1 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded"
+                            type="button"
+                            onClick={() => onToggleHideTeacher(teacher.id)}
+                            title={teacher.isHidden ? 'शिक्षक देखाउनुहोस् (Unhide)' : 'शिक्षक लुकाउनुहोस् (Hide)'}
+                            className={`p-1 rounded transition-colors ${
+                              teacher.isHidden
+                                ? 'text-amber-600 bg-amber-50 hover:bg-amber-100'
+                                : 'text-stone-400 hover:text-stone-700 hover:bg-stone-100'
+                            }`}
                           >
-                            <Calculator className="w-3.5 h-3.5" />
+                            {teacher.isHidden ? <EyeOff className="w-3.5 h-3.5 text-amber-600" /> : <Eye className="w-3.5 h-3.5" />}
                           </button>
                         )}
                         <button
@@ -723,6 +767,130 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Teacher Visibility Management Modal */}
+      {isHideManagerModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-2xs">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-stone-300 flex flex-col max-h-[88vh]">
+            {/* Modal Header */}
+            <div className="bg-stone-900 text-white px-5 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-400" />
+                <div>
+                  <h3 className="text-sm font-bold text-white">शिक्षक देखाउने / लुकाउने व्यवस्थापन</h3>
+                  <p className="text-[11px] text-stone-300">
+                    तालिकामा आवश्यक शिक्षक मात्र देखाउन वा अस्थायी रूपमा लुकाउन सकिन्छ
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsHideManagerModalOpen(false)}
+                className="text-stone-400 hover:text-white p-1 rounded transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Subheader / Search & Actions */}
+            <div className="p-3 bg-stone-50 border-b border-stone-200 flex flex-col gap-2">
+              <div className="relative">
+                <Search className="w-4 h-4 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="शिक्षकको नाम खोज्नुहोस्..."
+                  value={modalSearch}
+                  onChange={(e) => setModalSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-stone-300 rounded focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-stone-600 px-1">
+                <span>
+                  कुल शिक्षक: <b>{num(teachers.length)}</b> | लुकाइएको: <b className="text-amber-700">{num(hiddenCount)}</b>
+                </span>
+                <div className="flex items-center gap-2">
+                  {hiddenCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        teachers.forEach((t) => {
+                          if (t.isHidden && onToggleHideTeacher) {
+                            onToggleHideTeacher(t.id);
+                          }
+                        });
+                      }}
+                      className="text-[11px] text-blue-700 hover:underline font-semibold"
+                    >
+                      सबै देखाउनुहोस् (Show All)
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Teachers List */}
+            <div className="overflow-y-auto p-3 divide-y divide-stone-100 flex-1">
+              {teachers
+                .filter((t) =>
+                  t.name.toLowerCase().includes(modalSearch.toLowerCase()) ||
+                  t.designation.toLowerCase().includes(modalSearch.toLowerCase())
+                )
+                .map((teacher) => {
+                  const isHidden = !!teacher.isHidden;
+                  return (
+                    <div
+                      key={`hide-list-${teacher.id}`}
+                      onClick={() => onToggleHideTeacher && onToggleHideTeacher(teacher.id)}
+                      className={`flex items-center justify-between py-2.5 px-3 rounded-lg cursor-pointer transition-colors ${
+                        isHidden ? 'bg-amber-50/70 hover:bg-amber-100/70' : 'hover:bg-stone-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-5 text-center text-xs font-mono text-stone-400">
+                          {num(teacher.sn)}
+                        </span>
+                        <div>
+                          <p className={`text-xs font-bold ${isHidden ? 'text-stone-500' : 'text-stone-900'}`}>
+                            {teacher.name}
+                          </p>
+                          <p className="text-[11px] text-stone-500">
+                            {teacher.designation} • {format(teacher.basicSalary)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {isHidden ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
+                            <EyeOff className="w-3 h-3 text-amber-700" />
+                            <span>लुकाइएको</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded">
+                            <Eye className="w-3 h-3 text-emerald-700" />
+                            <span>देखाइएको</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 bg-stone-50 border-t border-stone-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsHideManagerModalOpen(false)}
+                className="px-4 py-1.5 text-xs font-bold bg-blue-700 text-white rounded hover:bg-blue-800 transition-colors"
+              >
+                सम्पन्न (Done)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

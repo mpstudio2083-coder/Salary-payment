@@ -5,6 +5,7 @@ import {
   TeacherRecord, 
   MonthlyTeacherPayroll 
 } from '../types';
+import { getMaxGradeForDesignation } from './calculations';
 
 export const DEFAULT_ALLOWANCE_SETTINGS: SpecialAllowanceSettings = {
   dashainMonth: 'साउन', // Shrawan payment as requested
@@ -21,12 +22,14 @@ export function calculateTeacherMonthly(
   settings: SpecialAllowanceSettings = DEFAULT_ALLOWANCE_SETTINGS
 ): MonthlyTeacherPayroll {
   const basic = Number(teacher.basicSalary) || 0;
+  const maxGrade = getMaxGradeForDesignation(teacher.designation);
 
   // Grade adjustment: From Baisakh (वैशाख, जेठ, असार), grade changes!
   const isBaisakhQuarter = month === 'वैशाख' || month === 'जेठ' || month === 'असार';
-  const effectiveGradeCount = (isBaisakhQuarter && teacher.gradeCountBaisakh !== undefined)
+  const rawGradeCount = (isBaisakhQuarter && teacher.gradeCountBaisakh !== undefined)
     ? Number(teacher.gradeCountBaisakh)
     : (Number(teacher.gradeCount) || 0);
+  const effectiveGradeCount = Math.min(maxGrade, rawGradeCount);
 
   const gradeRate = Number(teacher.gradeRate) || (effectiveGradeCount > 0 ? Math.round(basic / 30) : 0);
   const gradeAmount = effectiveGradeCount * gradeRate;

@@ -1,6 +1,40 @@
 import { TeacherRecord } from '../types';
 
 /**
+ * Returns the legal maximum grade limit according to Nepal Teacher Service Rules:
+ * - मा.वि. (Secondary): अधिकतम ८ ग्रेड मात्र
+ * - नि.मा.वि. (Lower Secondary): अधिकतम ८ ग्रेड
+ * - प्रा.वि. द्वितीय (Primary Second Class): अधिकतम ८ ग्रेड
+ * - प्रा.वि. तृतीय (Primary Third Class): अधिकतम ६ ग्रेड
+ */
+export function getMaxGradeForDesignation(designation?: string): number {
+  if (!designation) return 8;
+  const d = designation.trim();
+  
+  // मा.वि. (माध्यमिक विद्यालय)
+  if (d.includes('मा.वि.') && !d.includes('नि.मा.वि.') && !d.includes('प्रा.वि.')) {
+    return 8;
+  }
+  // नि.मा.वि. (निम्न माध्यमिक विद्यालय)
+  if (d.includes('नि.मा.वि.')) {
+    return 8;
+  }
+  // प्रा.वि. द्वितीय (प्राथमिक तह द्वितीय श्रेणी)
+  if (d.includes('प्रा.वि.') && (d.includes('द्वितीय') || d.includes('२') || d.includes('2') || d.includes('सकन्ड') || d.includes('second'))) {
+    return 8;
+  }
+  // प्रा.वि. तृतीय (प्राथमिक तह तृतीय श्रेणी)
+  if (d.includes('प्रा.वि.') && (d.includes('तृतीय') || d.includes('३') || d.includes('3') || d.includes('थर्ड') || d.includes('third'))) {
+    return 6;
+  }
+  // Default for general प्रा.वि.
+  if (d.includes('प्रा.वि.')) {
+    return 6;
+  }
+  return 8;
+}
+
+/**
  * Recalculates all derived fields for a teacher record based on monthsCount
  */
 export interface CalculationOptions {
@@ -24,14 +58,17 @@ export function calculateTeacherPayroll(
   const basic = Number(teacher.basicSalary) || 0;
   
   // Grade count: User can customize, or auto-calculate based on joining date
-  // If useBaisakhGrade option is requested, use gradeCountBaisakh (or +1 for permanent)
+  // Enforces legal maximum grade limits (मा.वि. ८, नि.मा.वि. ८, प्रा.वि. २nd ८, प्रा.वि. ३rd ६)
+  const maxGradeLimit = getMaxGradeForDesignation(teacher.designation);
   let gradeCount = Number(teacher.gradeCount) || 0;
   if (options?.useBaisakhGrade) {
     if (teacher.gradeCountBaisakh !== undefined) {
-      gradeCount = Number(teacher.gradeCountBaisakh);
+      gradeCount = Math.min(maxGradeLimit, Number(teacher.gradeCountBaisakh));
     } else if (teacher.category === 'permanent') {
-      gradeCount = (Number(teacher.gradeCount) || 0) + 1;
+      gradeCount = Math.min(maxGradeLimit, (Number(teacher.gradeCount) || 0) + 1);
     }
+  } else if (teacher.category === 'permanent' || teacher.designation.includes('वि.')) {
+    gradeCount = Math.min(maxGradeLimit, gradeCount);
   }
   
   // Grade rate: either provided or calculated as Basic / 30
@@ -200,8 +237,11 @@ export function calculateTeacherPayroll(
   // Period Net Payable (त्रैमासिक खुद पाउने रकम) = Period Payable Gross - Tax
   const periodNet = Math.round((periodPayableGross - tax1Percent) * 100) / 100;
 
-  // Monthly Net Payable (एक महिनाको खुद पाउने)
-  const monthlyNet = effectiveDurationMonths > 0 ? Math.round((periodNet / effectiveDurationMonths) * 100) / 100 : 0;
+  // Monthly Net Payable (एक महिनाको खुद पाउने - दसैं तथा पोशाक भत्ता बाहेकको नियमित १ महिनाको खुद रकम)
+  // नियम: मासिक खुद = १ महिनाको कुल तलब (दसैं बाहेक) - १ महिनाको कट्टी - १% सामाजिक सुरक्षा कर
+  const monthlyPayableGross = Math.max(0, Math.round((monthlyGross - monthlyKatti) * 100) / 100);
+  const monthlyTax1Percent = monthlyPayableGross > 0 ? Math.round(monthlyPayableGross * 0.01 * 100) / 100 : 0;
+  const monthlyNet = Math.round((monthlyPayableGross - monthlyTax1Percent) * 100) / 100;
 
   return {
     ...teacher,
@@ -567,10 +607,11 @@ export function calculateGradeSplit9_3(
   const p1PeriodGross = Math.round(p1MonthlyGross * p1EffectiveMonths * 100) / 100;
   const p1PeriodKatti = Math.round(p1MonthlyKatti * p1EffectiveMonths * 100) / 100;
 
-  // Period 2 Grade: If teacher.gradeCountBaisakh is specified, use it. Otherwise, permanent gets +1 grade.
+  // Period 2 Grade: respects maximum grade limit for teacher's designation (मा.वि. ८, नि.मा.वि. ८, प्रा.वि. २nd ८, प्रा.वि. ३rd ६)
+  const maxGrade = getMaxGradeForDesignation(teacher.designation);
   const p2GradeCount = teacher.gradeCountBaisakh !== undefined 
-    ? Number(teacher.gradeCountBaisakh) 
-    : (isPermanent ? p1GradeCount + 1 : p1GradeCount);
+    ? Math.min(maxGrade, Number(teacher.gradeCountBaisakh)) 
+    : (isPermanent ? Math.min(maxGrade, p1GradeCount + 1) : Math.min(maxGrade, p1GradeCount));
   
   const p2GradeRate = p1GradeRate || (p2GradeCount > 0 ? Math.round(basic / 30) : 0);
   const p2GradeAmount = p2GradeCount * p2GradeRate;

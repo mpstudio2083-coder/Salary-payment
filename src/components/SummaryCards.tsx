@@ -15,7 +15,8 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
   monthsCount,
   useNepaliDigits
 }) => {
-  const totals = calculateGrandTotals(teachers);
+  const activeTeachers = teachers.filter((t) => !t.isHidden);
+  const totals = calculateGrandTotals(activeTeachers);
   const netInWords = numberToNepaliWords(totals.periodNet);
 
   return (
@@ -25,11 +26,16 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
         {/* Total Staff */}
         <div className="bg-white p-3 rounded-lg border border-stone-200 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-stone-500">कुल कर्मचारी</span>
+            <span className="text-xs font-semibold text-stone-500">सक्रिय शिक्षक/कर्मचारी</span>
             <Users className="w-4 h-4 text-blue-600" />
           </div>
           <p className="text-lg font-bold text-stone-900 mt-1">
-            {useNepaliDigits ? toNepaliNumber(teachers.length) : teachers.length} जना
+            {useNepaliDigits ? toNepaliNumber(activeTeachers.length) : activeTeachers.length} जना
+            {teachers.length !== activeTeachers.length && (
+              <span className="text-[10px] text-amber-700 ml-1 font-normal block sm:inline">
+                ({useNepaliDigits ? toNepaliNumber(teachers.length - activeTeachers.length) : teachers.length - activeTeachers.length} लुकाइएको)
+              </span>
+            )}
           </p>
           <span className="text-[11px] text-stone-500">
             मा.वि., नि.मा.वि., प्रा.वि. र कर्मचारी

@@ -27,7 +27,8 @@ export const MonthlyPrintView: React.FC<MonthlyPrintViewProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const records = calculateAllTeachersForMonth(teachers, month, allowanceSettings);
+  const activeTeachers = teachers.filter((t) => !t.isHidden);
+  const records = calculateAllTeachersForMonth(activeTeachers, month, allowanceSettings);
   const totals = calculateMonthlyTotals(records);
 
   const format = (val: number | undefined | null) =>
@@ -136,7 +137,7 @@ export const MonthlyPrintView: React.FC<MonthlyPrintViewProps> = ({
             <tbody>
               {records.map((m, idx) => (
                 <tr key={`mprint-${m.teacherId}-${idx}`} className="border-b border-black">
-                  <td className="border border-black p-1 text-center">{num(m.sn)}</td>
+                  <td className="border border-black p-1 text-center">{num(idx + 1)}</td>
                   <td className="border border-black p-1 font-semibold whitespace-nowrap">{m.name}</td>
                   <td className="border border-black p-1 whitespace-nowrap">{m.designation}</td>
                   <td className="border border-black p-1 text-right">{format(m.basicSalary)}</td>

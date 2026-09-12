@@ -1,6 +1,32 @@
 import { FiscalYearPayroll, TeacherRecord } from '../types';
 import { initialFiscalYears } from '../data/initialData';
 
+export const CANONICAL_TEACHER_ORDER = [
+  'सन्तलाल सोरेन',
+  'सुमन पोखरेल',
+  'जीत बहादुर राई',
+  'सुरेश कुमार मण्डल',
+  'चिन्तामणी तिमसिरे',
+  'भरतमान राई',
+  'बुद्ध थापा',
+  'धर्म राज महतो',
+  'बिजय कुमार राजवंशी',
+  'महेन्द्र प्रसाद चौलागाई',
+  'बल बहादुर राई',
+  'विनोद साह',
+  'अमृता पोखरेल',
+  'नन्दमाया सुब्बा',
+  'हरी माया लिम्बु',
+  'सपना राई',
+  'कृष्ण प्रसाद रिजाल',
+  'कुमारी राई',
+  'गंगा माया राई',
+  'राधिका कार्की',
+  'सविन्द्र कुमारी राजवंशी',
+  'बबिता गुरुगाई',
+  'असिम राई'
+];
+
 /**
  * Sanitizes and deduplicates teachers in fiscal years.
  * Guarantees that every teacher in every fiscal year has a strictly unique `id`
@@ -62,7 +88,7 @@ export function sanitizeFiscalYears(rawYears: FiscalYearPayroll[]): FiscalYearPa
       uniqueTeachers.push({
         ...t,
         id: uniqueId,
-        sn: uniqueTeachers.length + 1
+        sn: idx + 1
       });
     });
 
@@ -87,9 +113,25 @@ export function sanitizeFiscalYears(rawYears: FiscalYearPayroll[]): FiscalYearPa
       });
     }
 
+    // 3. Sort teachers strictly according to CANONICAL_TEACHER_ORDER (बुद्ध थापा -> धर्म राज -> बिजय; नन्दमाया -> हरी माया -> सपना)
+    uniqueTeachers.sort((a, b) => {
+      const idxA = CANONICAL_TEACHER_ORDER.indexOf((a.name || '').trim());
+      const idxB = CANONICAL_TEACHER_ORDER.indexOf((b.name || '').trim());
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return (a.sn || 0) - (b.sn || 0);
+    });
+
+    // Reassign sequential sn
+    const orderedTeachers = uniqueTeachers.map((t, i) => ({
+      ...t,
+      sn: i + 1
+    }));
+
     return {
       ...yr,
-      teachers: uniqueTeachers
+      teachers: orderedTeachers
     };
   });
 

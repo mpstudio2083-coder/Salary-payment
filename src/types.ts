@@ -52,6 +52,7 @@ export interface TeacherRecord {
   
   signature?: string; // दस्तखत स्थिति
   remarks?: string; // कैफियत
+  isHidden?: boolean; // शिक्षकको नाम अस्थायी रूपमा लुकाउने (आवश्यकता अनुसार hide/show)
 }
 
 export interface PayrollPeriod {

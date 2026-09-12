@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { FiscalYearPayroll, SchoolInfo, TeacherRecord, NepaliMonth } from './types';
 import { initialFiscalYears, initialSchoolInfo } from './data/initialData';
-import { calculateTeacherPayroll } from './utils/calculations';
+import { calculateTeacherPayroll, getMaxGradeForDesignation } from './utils/calculations';
 import { sanitizeFiscalYears } from './utils/sanitizeData';
+import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { SummaryCards } from './components/SummaryCards';
 import { PayrollTable } from './components/PayrollTable';
@@ -16,7 +17,7 @@ import { GradeSplit9_3View } from './components/GradeSplit9_3View';
 import { PartialSalaryModal } from './components/PartialSalaryModal';
 import { exportPayrollToCsv } from './utils/exportExcel';
 
-const STORAGE_KEY_YEARS = 'nepal_school_payroll_years_v1';
+const STORAGE_KEY_YEARS = 'nepal_school_payroll_years_v2';
 const STORAGE_KEY_SCHOOL = 'nepal_school_payroll_info_v1';
 const STORAGE_KEY_DIGITS = 'nepal_school_payroll_digits_v1';
 const STORAGE_KEY_TAB = 'nepal_school_payroll_tab_v1';
@@ -85,6 +86,7 @@ export default function App() {
   const [printMonthlyMonth, setPrintMonthlyMonth] = useState<NepaliMonth | null>(null);
   const [isPartialSalaryModalOpen, setIsPartialSalaryModalOpen] = useState(false);
   const [partialSalaryTeacherId, setPartialSalaryTeacherId] = useState<string | undefined>(undefined);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Save to localStorage when states update
   useEffect(() => {
@@ -360,11 +362,11 @@ export default function App() {
     }
   };
 
-  // Handler: Increment +1 Grade to all teachers in active year
+  // Handler: Increment +1 Grade to all teachers in active year respecting legal designation caps
   const handleIncrementAllGrades = () => {
     if (
       confirm(
-        `के तपाईं आ.व. ${currentPayroll.fiscalYear} का सबै स्थायी शिक्षकहरूको १ ग्रेड थप्न र तलब स्वतः हिसाब गर्न चाहनुहुन्छ?`
+        `के तपाईं आ.व. ${currentPayroll.fiscalYear} का सबै स्थायी शिक्षकहरूको १ ग्रेड थप्न (अधिकतम ग्रेड सीमा अनुसार) र तलब स्वतः हिसाब गर्न चाहनुहुन्छ?`
       )
     ) {
       setFiscalYears((prev) =>
@@ -372,8 +374,9 @@ export default function App() {
           if (yr.fiscalYear === currentPayroll.fiscalYear) {
             const updatedTeachers = yr.teachers.map((t) => {
               if (t.category === 'permanent') {
-                const newGradeCount = t.gradeCount + 1;
-                const gradeRate = t.gradeRate || Math.round(t.basicSalary / 30);
+                const maxGrade = getMaxGradeForDesignation(t.designation);
+                const newGradeCount = Math.min(maxGrade, t.gradeCount + 1);
+                const gradeRate = t.gradeRate || (newGradeCount > 0 ? Math.round(t.basicSalary / 30) : 0);
                 const gradeAmount = newGradeCount * gradeRate;
                 return calculateTeacherPayroll(
                   {
@@ -397,6 +400,24 @@ export default function App() {
         })
       );
     }
+  };
+
+  // Handler: Toggle Hide/Show Teacher (आवश्यकता अनुसार शिक्षक hide / show)
+  const handleToggleHideTeacher = (id: string) => {
+    setFiscalYears((prev) =>
+      prev.map((yr) => {
+        if (yr.fiscalYear === currentPayroll.fiscalYear) {
+          const updatedTeachers = yr.teachers.map((t) =>
+            t.id === id ? { ...t, isHidden: !t.isHidden } : t
+          );
+          return {
+            ...yr,
+            teachers: updatedTeachers
+          };
+        }
+        return yr;
+      })
+    );
   };
 
   // Handler: Save New Year
@@ -454,39 +475,44 @@ export default function App() {
     exportPayrollToCsv(currentPayroll, schoolInfo);
   };
 
+  // Handler: Toggle auto calculate
+  const handleToggleAutoCalc = () => {
+    const next = !autoCalculate;
+    setAutoCalculate(next);
+    // Recalculate if toggling back to auto
+    if (next) {
+      setFiscalYears((prev) =>
+        prev.map((yr) => {
+          if (yr.fiscalYear === currentPayroll.fiscalYear) {
+            return {
+              ...yr,
+              teachers: yr.teachers.map((t) =>
+                calculateTeacherPayroll(t, yr.monthsCount, true)
+              )
+            };
+          }
+          return yr;
+        })
+      );
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col font-sans">
-      {/* Top Header */}
-      <Header
+    <div className="min-h-screen bg-stone-100 flex flex-row font-sans text-stone-900">
+      {/* 1. Left Sidebar (Showing all requested items on the left side) */}
+      <Sidebar
         schoolInfo={schoolInfo}
         currentYear={currentPayroll}
         availableYears={fiscalYears}
         useNepaliDigits={useNepaliDigits}
         autoCalculate={autoCalculate}
         activeTab={activeTab}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         onChangeTab={(tab) => setActiveTab(tab)}
         onSelectYear={(yr) => setSelectedYear(yr)}
         onToggleDigits={() => setUseNepaliDigits((prev) => !prev)}
-        onToggleAutoCalc={() => {
-          const next = !autoCalculate;
-          setAutoCalculate(next);
-          // Recalculate if toggling back to auto
-          if (next) {
-            setFiscalYears((prev) =>
-              prev.map((yr) => {
-                if (yr.fiscalYear === currentPayroll.fiscalYear) {
-                  return {
-                    ...yr,
-                    teachers: yr.teachers.map((t) =>
-                      calculateTeacherPayroll(t, yr.monthsCount, true)
-                    )
-                  };
-                }
-                return yr;
-              })
-            );
-          }
-        }}
+        onToggleAutoCalc={handleToggleAutoCalc}
         onOpenTeacherModal={() => {
           setEditingTeacher(null);
           setIsTeacherModalOpen(true);
@@ -498,14 +524,43 @@ export default function App() {
         onResetData={handleResetData}
         onIncrementAllGrades={handleIncrementAllGrades}
         onChangeMonthsCount={handleChangeMonthsCount}
-        onOpenPartialSalaryModal={() => {
-          setPartialSalaryTeacherId(undefined);
-          setIsPartialSalaryModalOpen(true);
-        }}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1">
+      {/* 2. Main Content Container on the right */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
+        {/* Top Header Bar */}
+        <Header
+          schoolInfo={schoolInfo}
+          currentYear={currentPayroll}
+          availableYears={fiscalYears}
+          useNepaliDigits={useNepaliDigits}
+          autoCalculate={autoCalculate}
+          activeTab={activeTab}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
+          onChangeTab={(tab) => setActiveTab(tab)}
+          onSelectYear={(yr) => setSelectedYear(yr)}
+          onToggleDigits={() => setUseNepaliDigits((prev) => !prev)}
+          onToggleAutoCalc={handleToggleAutoCalc}
+          onOpenTeacherModal={() => {
+            setEditingTeacher(null);
+            setIsTeacherModalOpen(true);
+          }}
+          onOpenYearModal={() => setIsYearModalOpen(true)}
+          onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
+          onPrint={() => setIsPrintViewOpen(true)}
+          onExportCsv={handleExportCsv}
+          onResetData={handleResetData}
+          onIncrementAllGrades={handleIncrementAllGrades}
+          onChangeMonthsCount={handleChangeMonthsCount}
+          onOpenPartialSalaryModal={() => {
+            setPartialSalaryTeacherId(undefined);
+            setIsPartialSalaryModalOpen(true);
+          }}
+        />
+
+        {/* Main Content Area */}
+        <main className="flex-1">
         {activeTab === 'monthly' ? (
           /* Dedicated Monthly Dashboard with Dashain (Shrawan) & Poshak (Chaitra) */
           <div className="pt-3">
@@ -578,15 +633,13 @@ export default function App() {
                 setIsTeacherModalOpen(true);
               }}
               onDeleteTeacher={handleDeleteTeacher}
+              onToggleHideTeacher={handleToggleHideTeacher}
               onOpenGradeSplitView={() => setActiveTab('grade-split')}
-              onOpenPartialSalaryModal={(id) => {
-                setPartialSalaryTeacherId(id);
-                setIsPartialSalaryModalOpen(true);
-              }}
             />
           </>
         )}
       </main>
+      </div>
 
       {/* Modals */}
       <TeacherModal

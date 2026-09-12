@@ -22,7 +22,8 @@ export const PrintView: React.FC<PrintViewProps> = ({
   if (!isOpen) return null;
 
   const { teachers, periodTitle, monthsCount } = currentYear;
-  const totals = calculateGrandTotals(teachers);
+  const activeTeachers = teachers.filter((t) => !t.isHidden);
+  const totals = calculateGrandTotals(activeTeachers);
 
   const format = (val: number | undefined | null) =>
     formatNepaliCurrency(val, { nepaliDigits: useNepaliDigits });
@@ -161,9 +162,9 @@ export const PrintView: React.FC<PrintViewProps> = ({
             </thead>
 
             <tbody>
-              {teachers.map((t, idx) => (
+              {activeTeachers.map((t, idx) => (
                 <tr key={`print-${t.id}-${idx}`} className="border-b border-black">
-                  <td className="border border-black p-1 text-center">{num(t.sn)}</td>
+                  <td className="border border-black p-1 text-center">{num(idx + 1)}</td>
                   <td className="border border-black p-1 font-semibold whitespace-nowrap">{t.name}</td>
                   <td className="border border-black p-1 whitespace-nowrap">{t.designation}</td>
                   <td className="border border-black p-1 text-right">{format(t.basicSalary)}</td>
