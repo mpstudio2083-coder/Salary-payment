@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, Plus, Copy, Check, Trash2, Info } from 'lucide-react';
 import { FiscalYearPayroll, TeacherRecord } from '../types';
-import { calculateTeacherPayroll } from '../utils/calculations';
+import { calculateTeacherPayroll, getMaxGradeForDesignation } from '../utils/calculations';
 
 interface YearPeriodModalProps {
   isOpen: boolean;
@@ -52,12 +52,24 @@ export const YearPeriodModal: React.FC<YearPeriodModalProps> = ({
       const multiplier = salaryIncreasePercent > 0 ? (1 + salaryIncreasePercent / 100) : 1;
       const newBasicSalary = Math.round(t.basicSalary * multiplier);
 
-      const newGradeCount = (incrementGrades && t.category === 'permanent') 
-        ? t.gradeCount + 1 
-        : t.gradeCount;
+      // स्थायी शिक्षकको मात्र १ ग्रेड थप्ने (अधिकतम कानुनी सिमा भित्र), गैर-स्थायीको ०
+      let newGradeCount = 0;
+      if (t.category === 'permanent') {
+        const maxGrade = getMaxGradeForDesignation(t.designation);
+        newGradeCount = (incrementGrades && t.gradeCount < maxGrade) 
+          ? t.gradeCount + 1 
+          : t.gradeCount;
+      } else {
+        newGradeCount = 0;
+      }
       
-      const gradeRate = Math.round(newBasicSalary / 30);
+      const gradeRate = t.category === 'permanent' ? (t.gradeRate || Math.round(newBasicSalary / 30)) : 0;
       const gradeAmount = newGradeCount * gradeRate;
+
+      // प्रोत्साहन भत्ता: स्थायीको मात्र १०% हिसाब गर्ने, गैर-स्थायीको ०
+      const protsahanBhatta = t.category === 'permanent'
+        ? Math.round(newBasicSalary * 0.10 * 100) / 100
+        : 0;
 
       return calculateTeacherPayroll({
         ...t,
@@ -66,6 +78,7 @@ export const YearPeriodModal: React.FC<YearPeriodModalProps> = ({
         gradeCount: newGradeCount,
         gradeRate,
         gradeAmount,
+        protsahanBhatta,
         koshThap: t.category === 'permanent' ? Math.round((newBasicSalary + gradeAmount) * 0.10 * 100) / 100 : 0,
         koshKatti: t.category === 'permanent' ? Math.round((newBasicSalary + gradeAmount) * 0.20 * 100) / 100 : 0,
       }, newMonthsCount, true);

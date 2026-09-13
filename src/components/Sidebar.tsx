@@ -27,9 +27,9 @@ interface SidebarProps {
   availableYears: FiscalYearPayroll[];
   useNepaliDigits: boolean;
   autoCalculate: boolean;
-  activeTab: 'register' | 'monthly' | 'grade-split';
+  activeTab: 'register' | 'monthly' | 'grade-split' | 'quarterly-allowances';
   isCollapsed: boolean;
-  onChangeTab: (tab: 'register' | 'monthly' | 'grade-split') => void;
+  onChangeTab: (tab: 'register' | 'monthly' | 'grade-split' | 'quarterly-allowances') => void;
   onSelectYear: (year: string) => void;
   onToggleDigits: () => void;
   onToggleAutoCalc: () => void;
@@ -175,7 +175,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
             </button>
 
-            {/* ३. ९ महिना र ३ महिना (वैशाख ग्रेड) - नयाँ ग्रेड */}
+            {/* ३. त्रैमासिक भत्ता प्रविष्टि (दसैं, पोशाक, प्रोत्साहन) */}
+            <button
+              type="button"
+              id="sidebar-tab-allowances"
+              onClick={() => onChangeTab('quarterly-allowances')}
+              title="त्रैमासिक भत्ता प्रविष्टि (दसैं र पोशाक भत्ता प्रविष्टि)"
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all text-left ${
+                activeTab === 'quarterly-allowances'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'text-stone-300 hover:bg-stone-800/80 hover:text-white'
+              }`}
+            >
+              <Sliders className={`w-4 h-4 shrink-0 ${activeTab === 'quarterly-allowances' ? 'text-white' : 'text-amber-400'}`} />
+              {!isCollapsed && (
+                <div className="flex-1 flex items-center justify-between">
+                  <span>त्रैमासिक भत्ता प्रविष्टि</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded font-extrabold ${
+                      activeTab === 'quarterly-allowances'
+                        ? 'bg-amber-800 text-white'
+                        : 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                    }`}
+                  >
+                    दसैं/पोशाक
+                  </span>
+                </div>
+              )}
+            </button>
+
+            {/* ४. ९ महिना र ३ महिना (वैशाख ग्रेड) - नयाँ ग्रेड */}
             <button
               type="button"
               id="sidebar-tab-grade-split"
@@ -183,11 +212,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               title="९ महिना र ३ महिना (वैशाख ग्रेड)"
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all text-left ${
                 activeTab === 'grade-split'
-                  ? 'bg-amber-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-stone-300 hover:bg-stone-800/80 hover:text-white'
               }`}
             >
-              <Sparkles className={`w-4 h-4 shrink-0 ${activeTab === 'grade-split' ? 'text-white' : 'text-amber-400'}`} />
+              <Sparkles className={`w-4 h-4 shrink-0 ${activeTab === 'grade-split' ? 'text-white' : 'text-emerald-400'}`} />
               {!isCollapsed && (
                 <div className="flex-1 flex items-center justify-between">
                   <span>९ महिना र ३ महिना</span>

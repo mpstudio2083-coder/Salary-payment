@@ -31,7 +31,7 @@ const rawTeachers2082: TeacherRecord[] = [
     anyaBhatta: 0,
     koshKatti: 11067.40,
     bimaKatti: 800,
-    citKatti: 31500,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -52,7 +52,7 @@ const rawTeachers2082: TeacherRecord[] = [
     anyaBhatta: 300,
     koshKatti: 9611.40,
     bimaKatti: 800,
-    citKatti: 4000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -71,9 +71,10 @@ const rawTeachers2082: TeacherRecord[] = [
     mahangiBhatta: 5000,
     protsahanBhatta: 4368.9,
     anyaBhatta: 0,
+    // t-3
     koshKatti: 8737.80,
     bimaKatti: 800,
-    citKatti: 4000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -94,7 +95,7 @@ const rawTeachers2082: TeacherRecord[] = [
     anyaBhatta: 0,
     koshKatti: 8737.80,
     bimaKatti: 800,
-    citKatti: 4000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -115,7 +116,7 @@ const rawTeachers2082: TeacherRecord[] = [
     anyaBhatta: 0,
     koshKatti: 8798.80,
     bimaKatti: 800,
-    citKatti: 4000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -136,7 +137,7 @@ const rawTeachers2082: TeacherRecord[] = [
     anyaBhatta: 0,
     koshKatti: 8567.20,
     bimaKatti: 800,
-    citKatti: 4000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -157,7 +158,7 @@ const rawTeachers2082: TeacherRecord[] = [
     anyaBhatta: 255,
     koshKatti: 7640.80,
     bimaKatti: 800,
-    citKatti: 4000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -220,7 +221,7 @@ const rawTeachers2082: TeacherRecord[] = [
     anyaBhatta: 0,
     koshKatti: 8798.80,
     bimaKatti: 800,
-    citKatti: 4000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -241,7 +242,7 @@ const rawTeachers2082: TeacherRecord[] = [
     anyaBhatta: 0,
     koshKatti: 7896.80,
     bimaKatti: 800,
-    citKatti: 4000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -262,7 +263,7 @@ const rawTeachers2082: TeacherRecord[] = [
     anyaBhatta: 0,
     koshKatti: 7896.80,
     bimaKatti: 800,
-    citKatti: 4000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -283,7 +284,7 @@ const rawTeachers2082: TeacherRecord[] = [
     anyaBhatta: 0,
     koshKatti: 7896.80,
     bimaKatti: 800,
-    citKatti: 4000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -304,7 +305,7 @@ const rawTeachers2082: TeacherRecord[] = [
     anyaBhatta: 0,
     koshKatti: 7896.80,
     bimaKatti: 800,
-    citKatti: 4000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -321,7 +322,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
-    protsahanBhatta: 1700,
+    protsahanBhatta: 0,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -342,7 +343,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
-    protsahanBhatta: 1700,
+    protsahanBhatta: 0,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -363,11 +364,11 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
-    protsahanBhatta: 1800,
+    protsahanBhatta: 0,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
-    citKatti: 2000,
+    citKatti: 0,
     dashainPoshakBhatta: 0
   },
   {
@@ -384,7 +385,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
-    protsahanBhatta: 1750,
+    protsahanBhatta: 0,
     anyaBhatta: 1000,
     koshKatti: 0,
     bimaKatti: 0,
@@ -405,7 +406,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
-    protsahanBhatta: 1700,
+    protsahanBhatta: 0,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -426,7 +427,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
-    protsahanBhatta: 1600,
+    protsahanBhatta: 0,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -447,7 +448,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
-    protsahanBhatta: 1600,
+    protsahanBhatta: 0,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -468,7 +469,7 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
-    protsahanBhatta: 1300,
+    protsahanBhatta: 0,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -489,7 +490,28 @@ const rawTeachers2082: TeacherRecord[] = [
     bimaThap: 0,
     praABhatta: 0,
     mahangiBhatta: 0,
-    protsahanBhatta: 1700,
+    protsahanBhatta: 0,
+    anyaBhatta: 0,
+    koshKatti: 0,
+    bimaKatti: 0,
+    citKatti: 0,
+    dashainPoshakBhatta: 0
+  },
+  {
+    id: 't-24',
+    sn: 24,
+    name: 'सरस्वती दाहाल',
+    designation: 'नगर शिक्षक',
+    category: 'municipal',
+    basicSalary: 17000,
+    gradeCount: 0,
+    gradeRate: 0,
+    gradeAmount: 0,
+    koshThap: 0,
+    bimaThap: 0,
+    praABhatta: 0,
+    mahangiBhatta: 0,
+    protsahanBhatta: 0,
     anyaBhatta: 0,
     koshKatti: 0,
     bimaKatti: 0,
@@ -600,7 +622,7 @@ export const initialTeachers2083: TeacherRecord[] = rawTeachers2082.map(t => {
     gradeAmount,
     koshThap,
     koshKatti,
-    protsahanBhatta: Math.round(basicSalary * 0.10 * 100) / 100,
+    protsahanBhatta: t.category === 'permanent' ? Math.round(basicSalary * 0.10 * 100) / 100 : 0,
   }, 3, true, {
     includeDashain: true,
     includePoshak: false
@@ -609,7 +631,7 @@ export const initialTeachers2083: TeacherRecord[] = rawTeachers2082.map(t => {
 
 // Generate 2081/82 (Prior Year: with 1 less grade for teachers who had grades > 0)
 export const initialTeachers2081: TeacherRecord[] = rawTeachers2082.map(t => {
-  const previousGradeCount = Math.max(0, t.gradeCount - 1);
+  const previousGradeCount = t.category === 'permanent' ? Math.max(0, t.gradeCount - 1) : 0;
   const gradeRate = t.gradeRate || (previousGradeCount > 0 ? Math.round(t.basicSalary / 30) : 0);
   const gradeAmount = previousGradeCount * gradeRate;
   
@@ -619,6 +641,7 @@ export const initialTeachers2081: TeacherRecord[] = rawTeachers2082.map(t => {
     gradeCount: previousGradeCount,
     gradeRate,
     gradeAmount,
+    protsahanBhatta: t.category === 'permanent' ? Math.round(t.basicSalary * 0.10 * 100) / 100 : 0,
     koshThap: t.category === 'permanent' ? Math.round((t.basicSalary + gradeAmount) * 0.10 * 100) / 100 : 0,
     koshKatti: t.category === 'permanent' ? Math.round((t.basicSalary + gradeAmount) * 0.20 * 100) / 100 : 0,
   }, 3, true);

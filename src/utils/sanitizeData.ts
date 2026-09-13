@@ -122,9 +122,27 @@ export function sanitizeFiscalYears(rawYears: FiscalYearPayroll[]): FiscalYearPa
         }
       }
 
-      // Auto-fill Protsahan Bhatta as 10% of scale if undefined or 0
-      if (teacherData.protsahanBhatta === undefined || teacherData.protsahanBhatta === 0 || teacherData.protsahanBhatta === null) {
-        teacherData.protsahanBhatta = Math.round(teacherData.basicSalary * 0.10 * 100) / 100;
+      // Auto-fill Protsahan Bhatta as 10% of scale ONLY for permanent staff; non-permanent is 0
+      if (teacherData.category === 'permanent') {
+        if (teacherData.protsahanBhatta === undefined || teacherData.protsahanBhatta === 0 || teacherData.protsahanBhatta === null) {
+          teacherData.protsahanBhatta = Math.round(teacherData.basicSalary * 0.10 * 100) / 100;
+          teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
+        }
+      } else {
+        if (teacherData.protsahanBhatta !== 0) {
+          teacherData.protsahanBhatta = 0;
+          teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
+        }
+        if (teacherData.gradeCount !== 0) {
+          teacherData.gradeCount = 0;
+          teacherData.gradeAmount = 0;
+          teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
+        }
+      }
+
+      // सा. क. कोष / ना. ल. कोष स्वतः आउने रकम हटाउने (Clear auto-filled CIT / Kalyan Kosh deduction)
+      if (teacherData.citKatti && teacherData.citKatti > 0) {
+        teacherData.citKatti = 0;
         teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
       }
 

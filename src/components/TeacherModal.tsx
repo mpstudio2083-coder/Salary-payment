@@ -79,7 +79,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
         anyaBhatta: 0,
         koshKatti: Math.round((baseSalary + gRate) * 0.20 * 100) / 100,
         bimaKatti: 800,
-        citKatti: 4000,
+        citKatti: 0,
         dashainBhatta: Math.round(baseSalary + gRate),
         poshakBhatta: 10000,
         dashainPoshakBhatta: Math.round(baseSalary + gRate + 10000)
@@ -95,9 +95,9 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
     const parsed = parseFloat(value) || 0;
     const updated = { ...formData, [field]: parsed };
     
-    // तलब स्केल परिवर्तन हुँदा स्वतः हिसाब अन भएमा प्रोत्साहन भत्ता स्केलको १०% हुने
+    // तलब स्केल परिवर्तन हुँदा स्वतः हिसाब अन भएमा प्रोत्साहन भत्ता (स्थायीको मात्र) स्केलको १०% हुने
     if (field === 'basicSalary' && autoCalculateFields) {
-      updated.protsahanBhatta = Math.round(parsed * 0.10 * 100) / 100;
+      updated.protsahanBhatta = updated.category === 'permanent' ? Math.round(parsed * 0.10 * 100) / 100 : 0;
     }
 
     if (autoCalculateFields) {
@@ -141,8 +141,9 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       bimaKatti: isPerm ? 800 : 0,
       koshThap: isPerm ? formData.koshThap : 0,
       koshKatti: isPerm ? formData.koshKatti : 0,
+      gradeCount: isPerm ? formData.gradeCount : 0,
       gradeRate: isPerm ? gradeRate : 0,
-      protsahanBhatta: Math.round(basic * 0.10 * 100) / 100 // स्केलको १०% स्वतः
+      protsahanBhatta: isPerm ? (Math.round(basic * 0.10 * 100) / 100) : 0 // स्थायीको मात्र १०%
     };
 
     setFormData(calculateTeacherPayroll(updated, monthsCount, autoCalculateFields));
@@ -153,10 +154,13 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
     const updated = {
       ...formData,
       category: newCat,
+      gradeCount: isPerm ? formData.gradeCount : 0,
+      gradeRate: isPerm ? (formData.gradeRate || Math.round(formData.basicSalary / 30)) : 0,
       koshThap: isPerm ? formData.koshThap : 0,
       koshKatti: isPerm ? formData.koshKatti : 0,
       bimaThap: isPerm ? (formData.bimaThap || 400) : 0,
-      bimaKatti: isPerm ? (formData.bimaKatti || 800) : 0
+      bimaKatti: isPerm ? (formData.bimaKatti || 800) : 0,
+      protsahanBhatta: isPerm ? (formData.protsahanBhatta || Math.round(formData.basicSalary * 0.10 * 100) / 100) : 0
     };
     setFormData(calculateTeacherPayroll(updated, monthsCount, autoCalculateFields));
   };
@@ -434,35 +438,49 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-stone-700">
-                    प्रोत्साहन भत्ता (१०%)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const autoVal = Math.round((Number(formData.basicSalary) || 0) * 0.10 * 100) / 100;
-                      handleNumberChange('protsahanBhatta', autoVal.toString());
-                    }}
-                    className="inline-flex items-center gap-1 text-[10px] text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1.5 py-0.5 rounded font-medium transition-colors cursor-pointer"
-                    title="तलब स्केलको १०% स्वतः हिसाब गरी भर्नुहोस्"
-                  >
-                    <span>स्केलको १०% स्वतः</span>
-                    <span className="font-mono font-bold">
-                      (रू {Math.round((Number(formData.basicSalary) || 0) * 0.10)})
+                  <div className="flex items-center gap-1.5">
+                    <label className="block text-xs font-semibold text-stone-700">
+                      प्रोत्साहन भत्ता (१०%)
+                    </label>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${formData.category === 'permanent' ? 'bg-blue-100 text-blue-800' : 'bg-stone-100 text-stone-500'}`}>
+                      {formData.category === 'permanent' ? 'स्थायीको मात्र' : 'गैर-स्थायी (०)'}
                     </span>
-                  </button>
+                  </div>
+                  {formData.category === 'permanent' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const autoVal = Math.round((Number(formData.basicSalary) || 0) * 0.10 * 100) / 100;
+                        handleNumberChange('protsahanBhatta', autoVal.toString());
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1.5 py-0.5 rounded font-medium transition-colors cursor-pointer"
+                      title="तलब स्केलको १०% स्वतः हिसाब गरी भर्नुहोस्"
+                    >
+                      <span>स्केलको १०% स्वतः</span>
+                      <span className="font-mono font-bold">
+                        (रू {Math.round((Number(formData.basicSalary) || 0) * 0.10)})
+                      </span>
+                    </button>
+                  )}
                 </div>
                 <input
                   type="number"
                   step="any"
-                  value={formData.protsahanBhatta !== undefined ? formData.protsahanBhatta : ''}
+                  disabled={formData.category !== 'permanent'}
+                  value={formData.category === 'permanent' ? (formData.protsahanBhatta !== undefined ? formData.protsahanBhatta : '') : 0}
                   onChange={(e) => handleNumberChange('protsahanBhatta', e.target.value)}
-                  className="w-full text-xs px-3 py-2 border border-stone-300 rounded font-mono bg-white focus:ring-1 focus:ring-blue-500 font-medium text-stone-800"
-                  placeholder={`१०% = रू ${Math.round((Number(formData.basicSalary) || 0) * 0.10)}`}
+                  className={`w-full text-xs px-3 py-2 border rounded font-mono font-medium ${
+                    formData.category === 'permanent'
+                      ? 'border-stone-300 bg-white focus:ring-1 focus:ring-blue-500 text-stone-800'
+                      : 'border-stone-200 bg-stone-100 text-stone-400 cursor-not-allowed'
+                  }`}
+                  placeholder={formData.category === 'permanent' ? `१०% = रू ${Math.round((Number(formData.basicSalary) || 0) * 0.10)}` : 'गैर-स्थायीलाई लागु हुँदैन (रू ०)'}
                 />
                 <div className="flex items-center justify-between mt-1 text-[10px] text-stone-500">
-                  <span>स्केलको १०% स्वतः भरिने</span>
-                  <span className="text-emerald-700 font-medium">म्यानुअल टाइप गर्न मिल्ने</span>
+                  <span>{formData.category === 'permanent' ? 'स्केलको १०% स्वतः भरिने' : 'नियम: स्थायीको मात्र हिसाब हुन्छ'}</span>
+                  {formData.category === 'permanent' && (
+                    <span className="text-emerald-700 font-medium">म्यानुअल टाइप गर्न मिल्ने</span>
+                  )}
                 </div>
               </div>
 
@@ -520,14 +538,34 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
 
               <div>
                 <label className="block text-xs font-medium text-stone-700 mb-1">
-                  सा. क. कोष / ना. ल. कोष
+                  सा. क. कोष / ना. ल. कोष (साउन-चैत)
                 </label>
                 <input
                   type="number"
-                  value={formData.citKatti}
+                  value={formData.citKatti ?? 0}
                   onChange={(e) => handleNumberChange('citKatti', e.target.value)}
                   className="w-full text-xs px-3 py-2 border border-stone-300 rounded font-mono bg-white"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-amber-900 mb-1" title="वैशाखदेखि असारसम्म फरक कट्टी रकम भएमा">
+                  सा. क. कोष (वैशाख-असार फरक)
+                </label>
+                <input
+                  type="number"
+                  placeholder="फरक नभए खाली"
+                  value={formData.citKattiBaisakh !== undefined ? formData.citKattiBaisakh : ''}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? undefined : (parseFloat(e.target.value) || 0);
+                    setFormData(prev => ({
+                      ...prev,
+                      citKattiBaisakh: val
+                    }));
+                  }}
+                  className="w-full text-xs px-3 py-2 border border-amber-300 rounded font-mono bg-amber-50/50 text-amber-950 font-bold"
+                />
+                <span className="text-[10px] text-stone-500">वैशाख-असारमा फरक भए मात्र लेख्नुहोस्</span>
               </div>
 
               <div>

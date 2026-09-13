@@ -22,10 +22,10 @@ interface HeaderProps {
   availableYears: FiscalYearPayroll[];
   useNepaliDigits: boolean;
   autoCalculate: boolean;
-  activeTab: 'register' | 'monthly' | 'grade-split';
+  activeTab: 'dashboard' | 'register' | 'quarterly-allowances' | 'monthly' | 'grade-split';
   isSidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
-  onChangeTab: (tab: 'register' | 'monthly' | 'grade-split') => void;
+  onChangeTab: (tab: 'dashboard' | 'register' | 'quarterly-allowances' | 'monthly' | 'grade-split') => void;
   onSelectYear: (year: string) => void;
   onToggleDigits: () => void;
   onToggleAutoCalc: () => void;
@@ -102,16 +102,28 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             {/* Active view badge */}
             <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-stone-100 rounded-lg text-xs font-semibold text-stone-700 border border-stone-200">
-              {activeTab === 'monthly' && (
+              {activeTab === 'dashboard' && (
                 <>
                   <LayoutDashboard className="w-3.5 h-3.5 text-blue-600" />
-                  <span>मासिक प्रतिवेदन ड्यासबोर्ड (साउन/चैत)</span>
+                  <span>मुख्य तलबी ड्यासबोर्ड (Dashboard)</span>
                 </>
               )}
               {activeTab === 'register' && (
                 <>
                   <TableProperties className="w-3.5 h-3.5 text-blue-600" />
-                  <span>फोटो अनुसार तलबी भर्पाई (रजिस्टर)</span>
+                  <span>फोटो अनुसार तलबी भर्पाई (रजिस्टर पाना)</span>
+                </>
+              )}
+              {activeTab === 'quarterly-allowances' && (
+                <>
+                  <Sliders className="w-3.5 h-3.5 text-amber-600" />
+                  <span>त्रैमासिक भत्ता प्रविष्टि (Allowance Entry)</span>
+                </>
+              )}
+              {activeTab === 'monthly' && (
+                <>
+                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                  <span>मासिक प्रतिवेदन (साउन/चैत)</span>
                 </>
               )}
               {activeTab === 'grade-split' && (

@@ -128,16 +128,22 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
     if (!year1Data || !year2Data) return;
     if (confirm(`के तपाईं आ.व. ${year1Name} का सबै शिक्षकहरूको विवरण आ.व. ${year2Name} मा प्रतिलिपि गर्न चाहनुहुन्छ? ${incrementGrade ? '(प्रत्येक शिक्षकको १ ग्रेड स्वतः वृद्धि गरिनेछ)' : ''}`)) {
       const copiedTeachers = year1Data.teachers.map((t, idx) => {
-        const nextGradeCount = incrementGrade ? t.gradeCount + 1 : t.gradeCount;
-        const gradeRate = t.gradeRate || Math.round(t.basicSalary / 30);
+        const isPerm = t.category === 'permanent';
+        const maxGrade = getMaxGradeForDesignation(t.designation);
+        const nextGradeCount = (incrementGrade && isPerm)
+          ? (t.gradeCount >= maxGrade ? t.gradeCount : Math.min(maxGrade, t.gradeCount + 1))
+          : (isPerm ? t.gradeCount : 0);
+        const gradeRate = isPerm ? (t.gradeRate || Math.round(t.basicSalary / 30)) : 0;
         const gradeAmount = nextGradeCount * gradeRate;
+        const protsahanBhatta = isPerm ? Math.round(t.basicSalary * 0.10 * 100) / 100 : 0;
 
         const updated: TeacherRecord = {
           ...t,
           id: `t-${year2Name.replace(/[^0-9]/g, '')}-${idx + 1}`,
           gradeCount: nextGradeCount,
           gradeRate,
-          gradeAmount
+          gradeAmount,
+          protsahanBhatta
         };
 
         return calculateTeacherPayroll(updated, year2Data.monthsCount, true, {
@@ -166,16 +172,21 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
   const handleAddTeacherToYear2 = (teacher: TeacherRecord) => {
     if (!year2Data) return;
     const isPerm = teacher.category === 'permanent';
-    const gradeCount = isPerm ? teacher.gradeCount + 1 : teacher.gradeCount;
-    const gradeRate = teacher.gradeRate || Math.round(teacher.basicSalary / 30);
+    const maxGrade = getMaxGradeForDesignation(teacher.designation);
+    const gradeCount = isPerm 
+      ? (teacher.gradeCount >= maxGrade ? teacher.gradeCount : Math.min(maxGrade, teacher.gradeCount + 1))
+      : 0;
+    const gradeRate = isPerm ? (teacher.gradeRate || Math.round(teacher.basicSalary / 30)) : 0;
     const gradeAmount = gradeCount * gradeRate;
+    const protsahanBhatta = isPerm ? Math.round(teacher.basicSalary * 0.10 * 100) / 100 : 0;
 
     const newTeacher: TeacherRecord = {
       ...teacher,
       id: `t-${year2Name.replace(/[^0-9]/g, '')}-${Date.now()}`,
       gradeCount,
       gradeRate,
-      gradeAmount
+      gradeAmount,
+      protsahanBhatta
     };
 
     const calculated = calculateTeacherPayroll(newTeacher, year2Data.monthsCount, true, {
@@ -214,9 +225,10 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
       // Respect legal limit: "yo samma hune ko grad bridhhi nagarnu"
       const gradeCount = (revisionAddGrade && isPerm) 
         ? (t.gradeCount >= maxGrade ? t.gradeCount : Math.min(maxGrade, t.gradeCount + 1)) 
-        : t.gradeCount;
-      const gradeRate = Math.round(basic / 30);
+        : (isPerm ? t.gradeCount : 0);
+      const gradeRate = isPerm ? (t.gradeRate || Math.round(basic / 30)) : 0;
       const gradeAmount = gradeCount * gradeRate;
+      const protsahanBhatta = isPerm ? Math.round(basic * 0.10 * 100) / 100 : 0;
 
       const updated = {
         ...t,
@@ -224,6 +236,7 @@ export const TwoYearComparisonView: React.FC<TwoYearComparisonViewProps> = ({
         gradeCount,
         gradeRate,
         gradeAmount,
+        protsahanBhatta,
         koshThap: isPerm ? Math.round((basic + gradeAmount) * 0.10 * 100) / 100 : 0,
         koshKatti: isPerm ? Math.round((basic + gradeAmount) * 0.20 * 100) / 100 : 0
       };

@@ -134,8 +134,10 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
   const totalPoshak = calculatedRows.reduce((acc, r) => acc + r.poshakBhatta, 0);
   const totalP1Gross = calculatedRows.reduce((acc, r) => acc + r.p1PeriodGross, 0);
   const totalP1Katti = calculatedRows.reduce((acc, r) => acc + r.p1PeriodKatti, 0);
+  const totalP1Cit = calculatedRows.reduce((acc, r) => acc + (r.p1CitKatti || 0), 0);
   const totalP2Gross = calculatedRows.reduce((acc, r) => acc + r.p2PeriodGross, 0);
   const totalP2Katti = calculatedRows.reduce((acc, r) => acc + r.p2PeriodKatti, 0);
+  const totalP2Cit = calculatedRows.reduce((acc, r) => acc + (r.p2CitKatti || 0), 0);
 
   const handlePrint = () => {
     window.print();
@@ -299,10 +301,10 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                 <th colSpan={4} className="border border-stone-300 px-2 py-2 bg-stone-200 text-left">
                   शिक्षकको विवरण
                 </th>
-                <th colSpan={5} className="border border-stone-300 px-2 py-2 bg-blue-100 text-blue-950">
+                <th colSpan={6} className="border border-stone-300 px-2 py-2 bg-blue-100 text-blue-950">
                   अवधि १: साउनदेखि चैतसम्म (पुरानो ग्रेड)
                 </th>
-                <th colSpan={5} className="border border-stone-300 px-2 py-2 bg-amber-100 text-amber-950">
+                <th colSpan={6} className="border border-stone-300 px-2 py-2 bg-amber-100 text-amber-950">
                   अवधि २: वैशाखदेखि असारसम्म (नयाँ ग्रेड)
                 </th>
                 <th colSpan={2} className="border border-stone-300 px-2 py-2 bg-purple-100 text-purple-950">
@@ -332,6 +334,9 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                 <th className="border border-stone-300 px-1.5 py-1.5 text-right bg-blue-50/50 min-w-[70px] text-rose-800">
                   अवधि १ कट्टी
                 </th>
+                <th className="border border-stone-300 px-1.5 py-1.5 text-right bg-blue-100/80 min-w-[65px] text-stone-800 font-semibold" title="साउनदेखि चैतसम्मको सा.क. कोष / ना.ल. कोष कट्टी">
+                  अवधि १ सा.क.
+                </th>
 
                 {/* Period 2 (Baisakh-Ashad) */}
                 <th className="border border-stone-300 px-1 py-1.5 text-center bg-amber-50/70 w-18 font-bold text-amber-900">
@@ -346,6 +351,9 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                 </th>
                 <th className="border border-stone-300 px-1.5 py-1.5 text-right bg-amber-50/70 min-w-[70px] text-rose-800">
                   अवधि २ कट्टी
+                </th>
+                <th className="border border-stone-300 px-1.5 py-1.5 text-right bg-amber-100 min-w-[85px] font-bold text-amber-950" title="वैशाखदेखि असारसम्म फरक सा.क. कोष कट्टी भए सोझै भर्नुहोस्">
+                  वैशाख सा.क. ✏️
                 </th>
 
                 {/* Manual Allowances */}
@@ -571,6 +579,9 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                     <td className="border border-stone-300 px-1.5 py-1 text-right font-mono text-rose-800 bg-blue-50/20">
                       {format(r.p1PeriodKatti)}
                     </td>
+                    <td className="border border-stone-300 px-1.5 py-1 text-right font-mono text-stone-700 bg-blue-100/30 font-semibold" title="अवधि १ सा.क. कोष कट्टी">
+                      {r.p1CitKatti > 0 ? format(r.p1CitKatti) : '-'}
+                    </td>
 
                     {/* Period 2 (Baisakh-Ashad) - Editable Grade */}
                     <td className="border border-stone-300 px-1 py-1 text-center bg-amber-50/40">
@@ -670,6 +681,29 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                     <td className="border border-stone-300 px-1.5 py-1 text-right font-mono text-rose-800 bg-amber-50/30">
                       {format(r.p2PeriodKatti)}
                     </td>
+                    <td className="border border-stone-300 px-1 py-1 text-right bg-amber-100/60">
+                      <input
+                        type="number"
+                        min="0"
+                        value={teacher.citKattiBaisakh !== undefined ? teacher.citKattiBaisakh : (teacher.citKatti || 0)}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          onUpdateTeacher({
+                            ...teacher,
+                            citKattiBaisakh: val,
+                            quarterlyDetails: {
+                              ...(teacher.quarterlyDetails || {}),
+                              fourth: {
+                                ...((teacher.quarterlyDetails && teacher.quarterlyDetails.fourth) || {}),
+                                citKatti: val
+                              }
+                            }
+                          });
+                        }}
+                        className="w-16 text-right font-mono font-bold text-xs py-0.5 px-1 border border-amber-300 rounded bg-white text-amber-950 focus:ring-1 focus:ring-amber-500 shadow-2xs"
+                        title="वैशाख-असारको सा. क. कोष / ना. ल. कोष कट्टी रकम (यहाँ फरक राख्न सक्नुहुन्छ)"
+                      />
+                    </td>
 
                     {/* Manual Dashain Input */}
                     <td className="border border-stone-300 px-1 py-1 text-right bg-purple-50/30">
@@ -736,7 +770,10 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                 <td className="border border-stone-300 px-1.5 py-2 text-right font-mono text-rose-900">
                   {format(totalP1Katti)}
                 </td>
-                <td colSpan={2} className="border border-stone-300 px-1.5 py-2 text-right">
+                <td className="border border-stone-300 px-1.5 py-2 text-right font-mono text-stone-800 bg-blue-100/50">
+                  {format(totalP1Cit)}
+                </td>
+                <td colSpan={2} className="border border-stone-300 px-1.5 py-2 text-right text-[11px] text-amber-950">
                   वैशाख-असार:
                 </td>
                 <td className="border border-stone-300 px-1 py-2 text-center text-amber-900 text-[10px]">
@@ -747,6 +784,9 @@ export const GradeSplit9_3View: React.FC<GradeSplit9_3ViewProps> = ({
                 </td>
                 <td className="border border-stone-300 px-1.5 py-2 text-right font-mono text-rose-900">
                   {format(totalP2Katti)}
+                </td>
+                <td className="border border-stone-300 px-1.5 py-2 text-right font-mono text-amber-950 bg-amber-100 font-bold">
+                  {format(totalP2Cit)}
                 </td>
                 <td className="border border-stone-300 px-1.5 py-2 text-right font-mono text-purple-950 bg-purple-100">
                   {format(totalDashain)}

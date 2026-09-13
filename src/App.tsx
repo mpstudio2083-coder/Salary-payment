@@ -15,6 +15,7 @@ import { SchoolSettingsModal } from './components/SchoolSettingsModal';
 import { PrintView } from './components/PrintView';
 import { GradeSplit9_3View } from './components/GradeSplit9_3View';
 import { PartialSalaryModal } from './components/PartialSalaryModal';
+import { QuarterlyAllowanceView } from './components/QuarterlyAllowanceView';
 import { exportPayrollToCsv } from './utils/exportExcel';
 
 const STORAGE_KEY_YEARS = 'nepal_school_payroll_years_v2';
@@ -42,11 +43,11 @@ export default function App() {
   // 2. Active Fiscal Year
   const [selectedYear, setSelectedYear] = useState<string>('२०८२/८३');
 
-  // 3. Active Tab: 'monthly' vs 'register' vs 'grade-split'
-  const [activeTab, setActiveTab] = useState<'register' | 'monthly' | 'grade-split'>(() => {
+  // 3. Active Tab: 'monthly' vs 'register' vs 'grade-split' vs 'quarterly-allowances'
+  const [activeTab, setActiveTab] = useState<'register' | 'monthly' | 'grade-split' | 'quarterly-allowances'>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_TAB);
-      if (saved === 'register' || saved === 'monthly' || saved === 'grade-split') return saved;
+      if (saved === 'register' || saved === 'monthly' || saved === 'grade-split' || saved === 'quarterly-allowances') return saved;
     } catch (e) {
       // default
     }
@@ -129,16 +130,127 @@ export default function App() {
     setFiscalYears((prev) =>
       prev.map((yr) => {
         if (yr.fiscalYear === currentPayroll.fiscalYear) {
+          const is12 = months === 12;
+          const incDashain = is12 ? true : (yr.includeDashain ?? true);
+          const incPoshak = is12 ? true : (yr.includePoshak ?? true);
+          const quarter = is12 ? 'yearly' : yr.selectedQuarter;
+          const periodTitle = is12
+            ? `आर्थिक वर्ष ${yr.fiscalYear} को १२ महिना (वार्षिक) को तलबी भर्पाई`
+            : yr.periodTitle;
+
           const recalculatedTeachers = yr.teachers.map((t) =>
             calculateTeacherPayroll(t, months, autoCalculate, {
-              includeDashain: yr.includeDashain ?? true,
-              includePoshak: yr.includePoshak ?? true
+              includeDashain: incDashain,
+              includePoshak: incPoshak,
+              quarter: quarter as any
             })
           );
           return {
             ...yr,
             monthsCount: months,
+            selectedQuarter: quarter,
+            periodTitle,
+            includeDashain: incDashain,
+            includePoshak: incPoshak,
             teachers: recalculatedTeachers
+          };
+        }
+        return yr;
+      })
+    );
+  };
+
+  // Handler: Update an individual allowance or deduction (e.g. CIT) for a teacher
+  const handleUpdateAllowance = (
+    teacherId: string,
+    field: 'dashainBhatta' | 'poshakBhatta' | 'protsahanBhatta' | 'mahangiBhatta' | 'praABhatta' | 'anyaBhatta' | 'citKatti',
+    value: number,
+    quarterKey?: 'first' | 'second' | 'third' | 'fourth'
+  ) => {
+    setFiscalYears((prev) =>
+      prev.map((yr) => {
+        if (yr.fiscalYear === currentPayroll.fiscalYear) {
+          const updatedTeachers = yr.teachers.map((t) => {
+            if (t.id === teacherId) {
+              // नियम: प्रोत्साहन भत्ता स्थायी शिक्षक/कर्मचारीको मात्र हिसाब हुने
+              const finalVal = (field === 'protsahanBhatta' && t.category !== 'permanent') ? 0 : value;
+              
+              const currentQKey = quarterKey || (
+                yr.selectedQuarter === 'first' ? 'first' :
+                yr.selectedQuarter === 'second' ? 'second' :
+                yr.selectedQuarter === 'third' ? 'third' :
+                (yr.selectedQuarter === 'fourth' || yr.selectedQuarter === 'three_months') ? 'fourth' : undefined
+              );
+
+              const newQuarterlyDetails = { ...(t.quarterlyDetails || {}) };
+              if (currentQKey) {
+                newQuarterlyDetails[currentQKey] = {
+                  ...(newQuarterlyDetails[currentQKey] || {}),
+                  [field]: finalVal
+                };
+              }
+
+              const updated: TeacherRecord = {
+                ...t,
+                [field]: finalVal,
+                quarterlyDetails: newQuarterlyDetails
+              };
+
+              // वैशाख-असार (fourth quarter) को सा.क. कोष कट्टी भएमा citKattiBaisakh पनि सेट गर्ने
+              if (currentQKey === 'fourth' && field === 'citKatti') {
+                updated.citKattiBaisakh = finalVal;
+              }
+
+              return calculateTeacherPayroll(updated, yr.monthsCount, autoCalculate, {
+                includeDashain: yr.monthsCount === 12 ? true : (yr.includeDashain ?? true),
+                includePoshak: yr.monthsCount === 12 ? true : (yr.includePoshak ?? true),
+                quarter: yr.selectedQuarter as any,
+                useBaisakhGrade: yr.selectedQuarter === 'three_months'
+              });
+            }
+            return t;
+          });
+          return {
+            ...yr,
+            teachers: updatedTeachers
+          };
+        }
+        return yr;
+      })
+    );
+  };
+
+  // Handler: Bulk update allowances (from QuarterlyAllowanceView)
+  const handleBulkUpdateAllowances = (
+    updates: Array<{ teacherId: string; fields: Partial<TeacherRecord> }>
+  ) => {
+    setFiscalYears((prev) =>
+      prev.map((yr) => {
+        if (yr.fiscalYear === currentPayroll.fiscalYear) {
+          const updateMap = new Map(updates.map((u) => [u.teacherId, u.fields]));
+          const updatedTeachers = yr.teachers.map((t) => {
+            if (updateMap.has(t.id)) {
+              const incoming = { ...updateMap.get(t.id)! };
+              // स्थायीको मात्र प्रोत्साहन भत्ता
+              if (t.category !== 'permanent' && 'protsahanBhatta' in incoming) {
+                incoming.protsahanBhatta = 0;
+              }
+              const updated = {
+                ...t,
+                ...incoming
+              };
+              return calculateTeacherPayroll(updated, yr.monthsCount, autoCalculate, {
+                includeDashain: yr.monthsCount === 12 ? true : (yr.includeDashain ?? true),
+                includePoshak: yr.monthsCount === 12 ? true : (yr.includePoshak ?? true),
+                quarter: yr.selectedQuarter as any,
+                useBaisakhGrade: yr.selectedQuarter === 'three_months'
+              });
+            }
+            return t;
+          });
+          return {
+            ...yr,
+            teachers: updatedTeachers
           };
         }
         return yr;
@@ -420,13 +532,14 @@ export default function App() {
     );
   };
 
-  // Handler: Auto-fill Protsahan Bhatta (10% of scale) for all teachers in active fiscal year
+  // Handler: Auto-fill Protsahan Bhatta (10% of scale) for permanent teachers only in active fiscal year
   const handleAutoFillProtsahan = () => {
     setFiscalYears((prev) =>
       prev.map((yr) => {
         if (yr.fiscalYear === currentPayroll.fiscalYear) {
           const updatedTeachers = yr.teachers.map((t) => {
-            const protsahan = Math.round(t.basicSalary * 0.10 * 100) / 100;
+            const isPerm = t.category === 'permanent';
+            const protsahan = isPerm ? Math.round(t.basicSalary * 0.10 * 100) / 100 : 0;
             return calculateTeacherPayroll(
               {
                 ...t,
@@ -435,8 +548,8 @@ export default function App() {
               yr.monthsCount,
               autoCalculate,
               {
-                includeDashain: yr.includeDashain ?? true,
-                includePoshak: yr.includePoshak ?? true,
+                includeDashain: yr.monthsCount === 12 ? true : (yr.includeDashain ?? true),
+                includePoshak: yr.monthsCount === 12 ? true : (yr.includePoshak ?? true),
                 quarter: yr.selectedQuarter as any,
                 useBaisakhGrade: yr.selectedQuarter === 'three_months'
               }
@@ -617,35 +730,23 @@ export default function App() {
               onClose={() => setActiveTab('register')}
             />
           </div>
+        ) : activeTab === 'quarterly-allowances' ? (
+          /* त्रैमासिक भत्ता प्रविष्टि: दसैं, पोशाक, प्रोत्साहन आदि */
+          <div className="pt-3">
+            <QuarterlyAllowanceView
+              teachers={currentPayroll.teachers}
+              fiscalYear={currentPayroll.fiscalYear}
+              selectedQuarter={currentPayroll.selectedQuarter || 'first'}
+              useNepaliDigits={useNepaliDigits}
+              onUpdateAllowance={handleUpdateAllowance}
+              onBulkUpdateAllowances={handleBulkUpdateAllowances}
+              onSelectQuarter={(quarter) => handleSelectQuarter(quarter as any)}
+              onBackToDashboard={() => setActiveTab('register')}
+            />
+          </div>
         ) : (
           /* Photo Register View (Quarterly / Configurable Period) */
           <>
-            {/* Quick Notification / Photo Banner */}
-            <div className="max-w-[1700px] mx-auto px-4 sm:px-6 pt-3">
-              <div className="bg-blue-50/80 border border-blue-200 text-blue-900 px-4 py-2 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="bg-blue-600 text-white font-bold text-[10px] px-2 py-0.5 rounded">
-                    फोटो प्रमाणित डाटा
-                  </span>
-                  <span className="font-medium">
-                    तपाईंको फोटो अनुसार श्री मंगल सिंह मा.वि. को १९ जना शिक्षक/कर्मचारीको तलब स्केल, ग्रेड, कोष, भत्ता तथा कट्टी रकम समावेश गरिएको रजिस्टर।
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 font-medium text-stone-600 shrink-0">
-                  <span>हालको अवधि: <b>{currentPayroll.monthsCount} महिना</b></span>
-                  <span>•</span>
-                  <span>आ.व.: <b className="text-blue-700">{currentPayroll.fiscalYear}</b></span>
-                </div>
-              </div>
-            </div>
-
-            {/* Summary Metric Cards */}
-            <SummaryCards
-              teachers={currentPayroll.teachers}
-              monthsCount={currentPayroll.monthsCount}
-              useNepaliDigits={useNepaliDigits}
-            />
-
             {/* The Master Payroll Sheet Table */}
             <PayrollTable
               teachers={currentPayroll.teachers}
@@ -660,6 +761,8 @@ export default function App() {
               onToggleDashain={handleToggleDashain}
               onTogglePoshak={handleTogglePoshak}
               onSelectQuarter={handleSelectQuarter}
+              onUpdateAllowance={handleUpdateAllowance}
+              onOpenQuarterlyAllowances={() => setActiveTab('quarterly-allowances')}
               onEditTeacher={(teacher) => {
                 setEditingTeacher(teacher);
                 setIsTeacherModalOpen(true);

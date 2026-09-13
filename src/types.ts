@@ -1,3 +1,13 @@
+export interface TeacherQuarterData {
+  anyaBhatta?: number;
+  praABhatta?: number;
+  mahangiBhatta?: number;
+  protsahanBhatta?: number;
+  citKatti?: number; // सा. क. कोष / ना. ल. कोष (यो त्रैमासिकको कट्टी)
+  dashainBhatta?: number;
+  poshakBhatta?: number;
+}
+
 export interface TeacherRecord {
   id: string;
   sn: number;
@@ -29,6 +39,21 @@ export interface TeacherRecord {
   // Baisakh Grade Change (साउन-चैत ९ महिना र वैशाख-असार ३ महिना ग्रेड विभाजन)
   gradeCountBaisakh?: number; // वैशाख १ देखिको नयाँ ग्रेड संख्या
   gradeAmountBaisakh?: number; // वैशाख १ देखिको नयाँ ग्रेड रकम
+
+  // Baisakh - Asar (वैशाख-असार फरक रकम: सा.क.कोष तथा भत्ता)
+  citKattiBaisakh?: number; // वैशाख-असारको सा. क. कोष / ना. ल. कोष कट्टी (फरक रकम)
+  anyaBhattaBaisakh?: number; // वैशाख-असारको अन्य भत्ता
+  praABhattaBaisakh?: number;
+  mahangiBhattaBaisakh?: number;
+  protsahanBhattaBaisakh?: number;
+
+  // चारै त्रैमासिकको छुट्टाछुट्टै भत्ता तथा सा.क.कोष विवरण (Quarter-wise allowances & CIT)
+  quarterlyDetails?: {
+    first?: TeacherQuarterData;  // साउन - असोज
+    second?: TeacherQuarterData; // कात्तिक - पुस
+    third?: TeacherQuarterData;  // माघ - चैत
+    fourth?: TeacherQuarterData; // वैशाख - असार
+  };
 
   // Partial Month & Days payment fields (उदा. १ महिना १७ दिन)
   customMonths?: number; // e.g. 1

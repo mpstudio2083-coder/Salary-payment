@@ -5,7 +5,7 @@ import {
   TeacherRecord, 
   MonthlyTeacherPayroll 
 } from '../types';
-import { getMaxGradeForDesignation } from './calculations';
+import { getMaxGradeForDesignation, getQuarterValues } from './calculations';
 
 export const DEFAULT_ALLOWANCE_SETTINGS: SpecialAllowanceSettings = {
   dashainMonth: 'साउन', // Shrawan payment as requested
@@ -24,26 +24,34 @@ export function calculateTeacherMonthly(
   const basic = Number(teacher.basicSalary) || 0;
   const maxGrade = getMaxGradeForDesignation(teacher.designation);
 
-  // Grade adjustment: From Baisakh (वैशाख, जेठ, असार), grade changes!
+  const isPermanent = teacher.category === 'permanent';
+
+  // Grade adjustment: From Baisakh (वैशाख, जेठ, असार), grade changes for permanent staff only!
   const isBaisakhQuarter = month === 'वैशाख' || month === 'जेठ' || month === 'असार';
-  const rawGradeCount = (isBaisakhQuarter && teacher.gradeCountBaisakh !== undefined)
-    ? Number(teacher.gradeCountBaisakh)
-    : (Number(teacher.gradeCount) || 0);
+  const rawGradeCount = isPermanent
+    ? ((isBaisakhQuarter && teacher.gradeCountBaisakh !== undefined)
+        ? Number(teacher.gradeCountBaisakh)
+        : (Number(teacher.gradeCount) || 0))
+    : 0;
   const effectiveGradeCount = Math.min(maxGrade, rawGradeCount);
 
-  const gradeRate = Number(teacher.gradeRate) || (effectiveGradeCount > 0 ? Math.round(basic / 30) : 0);
+  const gradeRate = isPermanent ? (Number(teacher.gradeRate) || (effectiveGradeCount > 0 ? Math.round(basic / 30) : 0)) : 0;
   const gradeAmount = effectiveGradeCount * gradeRate;
   const basicPlusGrade = basic + gradeAmount;
 
-  const isPermanent = teacher.category === 'permanent';
   const koshThap = isPermanent ? Math.round(basicPlusGrade * 0.10 * 100) / 100 : 0;
   const bimaThap = isPermanent ? (Number(teacher.bimaThap) || 400) : (Number(teacher.bimaThap) || 0);
-  const praABhatta = Number(teacher.praABhatta) || 0;
-  const mahangiBhatta = Number(teacher.mahangiBhatta) || 0;
-  const protsahanBhatta = (teacher.protsahanBhatta !== undefined && teacher.protsahanBhatta !== null)
-    ? Number(teacher.protsahanBhatta)
-    : Math.round(basic * 0.10 * 100) / 100;
-  const anyaBhatta = Number(teacher.anyaBhatta) || 0;
+  // Determine quarter key for month-specific allowances and deductions
+  const isShrawanQuarter = month === 'साउन' || month === 'भदौ' || month === 'असोज';
+  const isKartikQuarter = month === 'कात्तिक' || month === 'मङ्सिर' || month === 'पुस';
+  const isMaghQuarter = month === 'माघ' || month === 'फागुन' || month === 'चैत';
+  const quarterKey = isShrawanQuarter ? 'first' : (isKartikQuarter ? 'second' : (isMaghQuarter ? 'third' : 'fourth'));
+
+  const qValues = getQuarterValues(teacher, quarterKey);
+  const praABhatta = qValues.praABhatta;
+  const mahangiBhatta = qValues.mahangiBhatta;
+  const protsahanBhatta = qValues.protsahanBhatta;
+  const anyaBhatta = qValues.anyaBhatta;
 
   // Regular monthly gross (नियमित मासिक जम्मा)
   const regularMonthlyGross = Math.round((basic + gradeAmount + koshThap + bimaThap + praABhatta + mahangiBhatta + protsahanBhatta + anyaBhatta) * 100) / 100;
@@ -78,7 +86,7 @@ export function calculateTeacherMonthly(
   // नियम: क. कोष कट्टी र बिमा स्थायी शिक्षकका लागि मात्र
   const koshKatti = isPermanent ? Math.round(basicPlusGrade * 0.20 * 100) / 100 : 0;
   const bimaKatti = isPermanent ? (Number(teacher.bimaKatti) || 800) : (Number(teacher.bimaKatti) || 0);
-  const citKatti = Number(teacher.citKatti) || 0;
+  const citKatti = qValues.citKatti;
   const otherKatti = Number(teacher.otherKatti) || 0;
 
   const totalMonthlyKatti = Math.round((koshKatti + bimaKatti + citKatti + otherKatti) * 100) / 100;

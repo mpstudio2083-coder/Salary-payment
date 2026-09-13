@@ -47,6 +47,77 @@ export interface CalculationOptions {
 }
 
 /**
+ * Retrieves quarter-specific allowances and CIT deduction for a teacher.
+ * Fully supports varying allowances per quarter (shrawan-asoj, kartik-poush, magh-chaitra, baisakh-asar)
+ * and period-specific CIT / Kalyan Kosh deductions.
+ */
+export function getQuarterValues(
+  teacher: TeacherRecord,
+  quarter?: 'first' | 'second' | 'third' | 'fourth' | 'yearly' | 'nine_months' | 'three_months' | string
+) {
+  const isPermanent = teacher.category === 'permanent';
+  const basic = Number(teacher.basicSalary) || 0;
+
+  // Base fallback values
+  let praABhatta = Number(teacher.praABhatta) || 0;
+  let mahangiBhatta = Number(teacher.mahangiBhatta) || 0;
+  let protsahanBhatta = isPermanent
+    ? ((teacher.protsahanBhatta !== undefined && teacher.protsahanBhatta !== null)
+        ? Number(teacher.protsahanBhatta)
+        : Math.round(basic * 0.10 * 100) / 100)
+    : 0;
+  let anyaBhatta = Number(teacher.anyaBhatta) || 0;
+  let citKatti = Number(teacher.citKatti) || 0;
+  let dashainBhatta = Number(teacher.dashainBhatta) || 0;
+  let poshakBhatta = Number(teacher.poshakBhatta) || 0;
+
+  const qKey = (quarter === 'first' || quarter === 'second' || quarter === 'third' || quarter === 'fourth')
+    ? quarter
+    : (quarter === 'three_months' ? 'fourth' : undefined);
+
+  // Fourth Quarter (Baisakh - Asar): Check direct Baisakh-specific fields
+  if (qKey === 'fourth') {
+    if (teacher.citKattiBaisakh !== undefined && teacher.citKattiBaisakh !== null) {
+      citKatti = Number(teacher.citKattiBaisakh) || 0;
+    }
+    if (teacher.anyaBhattaBaisakh !== undefined && teacher.anyaBhattaBaisakh !== null) {
+      anyaBhatta = Number(teacher.anyaBhattaBaisakh) || 0;
+    }
+    if (teacher.praABhattaBaisakh !== undefined && teacher.praABhattaBaisakh !== null) {
+      praABhatta = Number(teacher.praABhattaBaisakh) || 0;
+    }
+    if (teacher.mahangiBhattaBaisakh !== undefined && teacher.mahangiBhattaBaisakh !== null) {
+      mahangiBhatta = Number(teacher.mahangiBhattaBaisakh) || 0;
+    }
+    if (teacher.protsahanBhattaBaisakh !== undefined && teacher.protsahanBhattaBaisakh !== null && isPermanent) {
+      protsahanBhatta = Number(teacher.protsahanBhattaBaisakh) || 0;
+    }
+  }
+
+  // Check quarterlyDetails structure if configured
+  if (qKey && teacher.quarterlyDetails && teacher.quarterlyDetails[qKey]) {
+    const qd = teacher.quarterlyDetails[qKey]!;
+    if (qd.citKatti !== undefined && qd.citKatti !== null) citKatti = Number(qd.citKatti);
+    if (qd.anyaBhatta !== undefined && qd.anyaBhatta !== null) anyaBhatta = Number(qd.anyaBhatta);
+    if (qd.praABhatta !== undefined && qd.praABhatta !== null) praABhatta = Number(qd.praABhatta);
+    if (qd.mahangiBhatta !== undefined && qd.mahangiBhatta !== null) mahangiBhatta = Number(qd.mahangiBhatta);
+    if (qd.protsahanBhatta !== undefined && qd.protsahanBhatta !== null) protsahanBhatta = isPermanent ? Number(qd.protsahanBhatta) : 0;
+    if (qd.dashainBhatta !== undefined && qd.dashainBhatta !== null) dashainBhatta = Number(qd.dashainBhatta);
+    if (qd.poshakBhatta !== undefined && qd.poshakBhatta !== null) poshakBhatta = Number(qd.poshakBhatta);
+  }
+
+  return {
+    praABhatta,
+    mahangiBhatta,
+    protsahanBhatta,
+    anyaBhatta,
+    citKatti,
+    dashainBhatta,
+    poshakBhatta
+  };
+}
+
+/**
  * Recalculates all derived fields for a teacher record based on monthsCount and allowance options
  */
 export function calculateTeacherPayroll(
@@ -56,18 +127,20 @@ export function calculateTeacherPayroll(
   options?: CalculationOptions
 ): TeacherRecord {
   const basic = Number(teacher.basicSalary) || 0;
+  const isPermanent = teacher.category === 'permanent';
   
   // Grade count: User can customize, or auto-calculate based on joining date
   // Enforces legal maximum grade limits (मा.वि. ८, नि.मा.वि. ८, प्रा.वि. २nd ८, प्रा.वि. ३rd ६)
   const maxGradeLimit = getMaxGradeForDesignation(teacher.designation);
+  const isBaisakhPeriod = options?.useBaisakhGrade || options?.quarter === 'fourth' || options?.quarter === 'three_months';
   let gradeCount = Number(teacher.gradeCount) || 0;
-  if (options?.useBaisakhGrade) {
+  if (isBaisakhPeriod) {
     if (teacher.gradeCountBaisakh !== undefined) {
       gradeCount = Math.min(maxGradeLimit, Number(teacher.gradeCountBaisakh));
-    } else if (teacher.category === 'permanent') {
+    } else if (isPermanent) {
       gradeCount = Math.min(maxGradeLimit, (Number(teacher.gradeCount) || 0) + 1);
     }
-  } else if (teacher.category === 'permanent' || teacher.designation.includes('वि.')) {
+  } else if (isPermanent || teacher.designation.includes('वि.')) {
     gradeCount = Math.min(maxGradeLimit, gradeCount);
   }
   
@@ -81,26 +154,22 @@ export function calculateTeacherPayroll(
 
   // Grade amount = gradeCount * gradeRate
   const gradeAmount = autoComputeFormulas ? gradeCount * gradeRate : (Number(teacher.gradeAmount) || 0);
-
   const basicPlusGrade = basic + gradeAmount;
 
   // Kosh Thap (Employee Provident Fund Govt Add)
   // नियम: स्थायी शिक्षकका लागि मात्र लागू हुने (१०%), अस्थायी/राहत/करार/कर्मचारीलाई हुँदैन
   let koshThap = 0;
-  if (teacher.category === 'permanent') {
+  if (isPermanent) {
     if (autoComputeFormulas) {
       koshThap = Math.round(basicPlusGrade * 0.10 * 100) / 100;
     } else {
       koshThap = Number(teacher.koshThap) || 0;
     }
-  } else {
-    // Non-permanent teachers do NOT get Kosh Thap
-    koshThap = 0;
   }
 
   // Bima Thap: स्थायी शिक्षकका लागि मात्र सरकारी थप रू ४००
   let bimaThap = 0;
-  if (teacher.category === 'permanent') {
+  if (isPermanent) {
     if (autoComputeFormulas) {
       bimaThap = (teacher.bimaThap === undefined || teacher.bimaThap === 0) ? 400 : Number(teacher.bimaThap);
     } else {
@@ -110,45 +179,41 @@ export function calculateTeacherPayroll(
     bimaThap = Number(teacher.bimaThap) || 0;
   }
 
-  const praABhatta = Number(teacher.praABhatta) || 0;
-  const mahangiBhatta = Number(teacher.mahangiBhatta) || 0;
-  // Protsahan allowance: scale ko 10% auto-computed when undefined, supports manual typing override
-  let protsahanBhatta = 0;
-  if (teacher.protsahanBhatta !== undefined && teacher.protsahanBhatta !== null) {
-    protsahanBhatta = Number(teacher.protsahanBhatta);
-  } else if (autoComputeFormulas && basic > 0) {
-    protsahanBhatta = Math.round(basic * 0.10 * 100) / 100;
-  }
-  const anyaBhatta = Number(teacher.anyaBhatta) || 0;
+  // Period / Quarter Specific Allowances and CIT Deduction
+  const qValues = getQuarterValues(teacher, options?.quarter);
+  const praABhatta = qValues.praABhatta;
+  const mahangiBhatta = qValues.mahangiBhatta;
+  const protsahanBhatta = qValues.protsahanBhatta;
+  const anyaBhatta = qValues.anyaBhatta;
+  const citKatti = qValues.citKatti;
 
   // Monthly Gross Total (एक महिनाको जम्मा)
   const monthlyGross = Math.round((basic + gradeAmount + koshThap + bimaThap + praABhatta + mahangiBhatta + protsahanBhatta + anyaBhatta) * 100) / 100;
 
   // Festival & Uniform Allowances (दसैं तथा पोशाक भत्ता - म्यानुअल प्रविष्टि प्राथमिकता)
-  // Standard defaults for reference if not manually set:
-  const standardDashain = (teacher.category === 'permanent' || teacher.designation.includes('वि.')) ? basicPlusGrade : 0;
-  const standardPoshak = (teacher.category === 'permanent' || teacher.designation.includes('वि.')) ? 10000 : 0;
+  const standardDashain = (isPermanent || teacher.designation.includes('वि.')) ? basicPlusGrade : 0;
+  const standardPoshak = (isPermanent || teacher.designation.includes('वि.')) ? 10000 : 0;
 
-  // If user entered a manual amount (even 0), respect it. If options toggle is provided:
+  // १२ महिना (वार्षिक) छनौट गर्दा त्रैमासिकमा इन्ट्री गरिएका दसैं र पोशाक भत्ता स्वतः हिसाबमा आउने
+  const is12MonthsOrYearly = monthsCount === 12 || options?.quarter === 'yearly';
+
   let dashainBhatta = 0;
   if (teacher.dashainBhatta !== undefined && teacher.dashainBhatta !== null) {
     dashainBhatta = Number(teacher.dashainBhatta) || 0;
-    // If explicitly turned off via options toggle
-    if (options && options.includeDashain === false) {
+    if (!is12MonthsOrYearly && options && options.includeDashain === false) {
       dashainBhatta = 0;
     }
-  } else if (options && options.includeDashain) {
+  } else if (is12MonthsOrYearly || (options && options.includeDashain)) {
     dashainBhatta = standardDashain;
   }
 
   let poshakBhatta = 0;
   if (teacher.poshakBhatta !== undefined && teacher.poshakBhatta !== null) {
     poshakBhatta = Number(teacher.poshakBhatta) || 0;
-    // If explicitly turned off via options toggle
-    if (options && options.includePoshak === false) {
+    if (!is12MonthsOrYearly && options && options.includePoshak === false) {
       poshakBhatta = 0;
     }
-  } else if (options && options.includePoshak) {
+  } else if (is12MonthsOrYearly || (options && options.includePoshak)) {
     poshakBhatta = standardPoshak;
   }
 
@@ -166,7 +231,7 @@ export function calculateTeacherPayroll(
     } else {
       effectiveDurationMonths = 9;
     }
-  } else if (options?.quarter === 'three_months') {
+  } else if (options?.quarter === 'three_months' || options?.quarter === 'fourth') {
     if (teacher.period2Months !== undefined) {
       effectiveDurationMonths = Number(teacher.period2Months) + ((Number(teacher.period2Days) || 0) / 30);
     } else if (teacher.customMonths !== undefined || teacher.customDays !== undefined) {
@@ -180,7 +245,7 @@ export function calculateTeacherPayroll(
     } else {
       effectiveDurationMonths = 3;
     }
-  } else if (options?.quarter === 'yearly') {
+  } else if (is12MonthsOrYearly) {
     if (teacher.period1Months !== undefined || teacher.period2Months !== undefined) {
       const p1 = (teacher.period1Months !== undefined ? Number(teacher.period1Months) : 9) + ((Number(teacher.period1Days) || 0) / 30);
       const p2 = (teacher.period2Months !== undefined ? Number(teacher.period2Months) : 3) + ((Number(teacher.period2Days) || 0) / 30);
@@ -194,26 +259,20 @@ export function calculateTeacherPayroll(
     effectiveDurationMonths = (Number(teacher.customMonths) || 0) + ((Number(teacher.customDays) || 0) / 30);
   }
 
-  // Period Gross Total (त्रैमासिक / अवधिको जम्मा = मासिक जम्मा × महिना + दसैं भत्ता + पोशाक भत्ता)
-  const periodGross = Math.round(((monthlyGross * effectiveDurationMonths) + dashainBhatta + poshakBhatta) * 100) / 100;
-
   // Deductions:
   // Kosh Katti: नियम अनुसार स्थायी शिक्षकका लागि मात्र लागू हुने (२०% = १०% शिक्षक + १०% सरकार)
   let koshKatti = 0;
-  if (teacher.category === 'permanent') {
+  if (isPermanent) {
     if (autoComputeFormulas && koshThap > 0) {
       koshKatti = Math.round(basicPlusGrade * 0.20 * 100) / 100;
     } else {
       koshKatti = Number(teacher.koshKatti) || 0;
     }
-  } else {
-    // Non-permanent teachers do NOT have Kosh Katti
-    koshKatti = 0;
   }
 
   // Bima Katti: नियम अनुसार स्थायी शिक्षकका लागि रू ८००
   let bimaKatti = 0;
-  if (teacher.category === 'permanent') {
+  if (isPermanent) {
     if (autoComputeFormulas && bimaThap > 0 && (!teacher.bimaKatti || teacher.bimaKatti === 0)) {
       bimaKatti = 800;
     } else {
@@ -223,17 +282,72 @@ export function calculateTeacherPayroll(
     bimaKatti = Number(teacher.bimaKatti) || 0;
   }
 
-  const citKatti = Number(teacher.citKatti) || 0;
   const otherKatti = Number(teacher.otherKatti) || 0;
 
   // Monthly Total Deduction (एक महिनाको जम्मा कट्टी)
   const monthlyKatti = Math.round((koshKatti + bimaKatti + citKatti + otherKatti) * 100) / 100;
 
-  // Period Total Deduction (त्रैमासिक / अवधि जम्मा कट्टी)
-  const periodKatti = Math.round((monthlyKatti * effectiveDurationMonths) * 100) / 100;
+  let periodGross = 0;
+  let periodKatti = 0;
 
-  // Period Gross Payable (त्रैमासिक पाउने रकम) = Period Gross (which already includes Dashain & Poshak) - Period Deductions
-  const periodPayableGross = Math.round((periodGross - periodKatti) * 100) / 100;
+  if (is12MonthsOrYearly) {
+    // 12 Months: Sum of all 4 quarters respecting each quarter's unique allowances and CIT
+    // Q1 (साउन - असोज, ३ महिना, पुरानाे ग्रेड)
+    const q1Val = getQuarterValues(teacher, 'first');
+    const q1Gross = basic + gradeAmount + koshThap + bimaThap + q1Val.praABhatta + q1Val.mahangiBhatta + q1Val.protsahanBhatta + q1Val.anyaBhatta;
+    const q1Katti = koshKatti + bimaKatti + q1Val.citKatti + otherKatti;
+
+    // Q2 (कात्तिक - पुस, ३ महिना, पुरानाे ग्रेड)
+    const q2Val = getQuarterValues(teacher, 'second');
+    const q2Gross = basic + gradeAmount + koshThap + bimaThap + q2Val.praABhatta + q2Val.mahangiBhatta + q2Val.protsahanBhatta + q2Val.anyaBhatta;
+    const q2Katti = koshKatti + bimaKatti + q2Val.citKatti + otherKatti;
+
+    // Q3 (माघ - चैत, ३ महिना, पुरानाे ग्रेड)
+    const q3Val = getQuarterValues(teacher, 'third');
+    const q3Gross = basic + gradeAmount + koshThap + bimaThap + q3Val.praABhatta + q3Val.mahangiBhatta + q3Val.protsahanBhatta + q3Val.anyaBhatta;
+    const q3Katti = koshKatti + bimaKatti + q3Val.citKatti + otherKatti;
+
+    // Q4 (वैशाख - असार, ३ महिना, नयाँ ग्रेड र वैशाख-असारको फरक सा.क.कोष)
+    const q4Val = getQuarterValues(teacher, 'fourth');
+    const q4GradeCount = isPermanent
+      ? (teacher.gradeCountBaisakh !== undefined
+          ? Math.min(maxGradeLimit, Number(teacher.gradeCountBaisakh))
+          : Math.min(maxGradeLimit, gradeCount + 1))
+      : 0;
+    const q4GradeAmount = q4GradeCount * gradeRate;
+    const q4BasicPlusGrade = basic + q4GradeAmount;
+    const q4KoshThap = isPermanent ? Math.round(q4BasicPlusGrade * 0.10 * 100) / 100 : 0;
+    const q4KoshKatti = isPermanent ? Math.round(q4BasicPlusGrade * 0.20 * 100) / 100 : 0;
+    const q4Gross = basic + q4GradeAmount + q4KoshThap + bimaThap + q4Val.praABhatta + q4Val.mahangiBhatta + q4Val.protsahanBhatta + q4Val.anyaBhatta;
+    const q4Katti = q4KoshKatti + bimaKatti + q4Val.citKatti + otherKatti;
+
+    const p1Factor = (teacher.period1Months !== undefined)
+      ? (Number(teacher.period1Months) + ((Number(teacher.period1Days) || 0) / 30)) / 9
+      : (effectiveDurationMonths <= 9 ? effectiveDurationMonths / 9 : 1);
+    const p2Factor = (teacher.period2Months !== undefined)
+      ? (Number(teacher.period2Months) + ((Number(teacher.period2Days) || 0) / 30)) / 3
+      : (effectiveDurationMonths <= 9 ? 0 : (effectiveDurationMonths - 9) / 3);
+
+    const q1TotalGross = (q1Gross * 3) * p1Factor;
+    const q1TotalKatti = (q1Katti * 3) * p1Factor;
+    const q2TotalGross = (q2Gross * 3) * p1Factor;
+    const q2TotalKatti = (q2Katti * 3) * p1Factor;
+    const q3TotalGross = (q3Gross * 3) * p1Factor;
+    const q3TotalKatti = (q3Katti * 3) * p1Factor;
+
+    const q4TotalGross = (q4Gross * 3) * p2Factor;
+    const q4TotalKatti = (q4Katti * 3) * p2Factor;
+
+    periodGross = Math.round((q1TotalGross + q2TotalGross + q3TotalGross + q4TotalGross + dashainBhatta + poshakBhatta) * 100) / 100;
+    periodKatti = Math.round((q1TotalKatti + q2TotalKatti + q3TotalKatti + q4TotalKatti) * 100) / 100;
+  } else {
+    // Period Total Deduction (त्रैमासिक / अवधि जम्मा कट्टी)
+    periodGross = Math.round(((monthlyGross * effectiveDurationMonths) + dashainBhatta + poshakBhatta) * 100) / 100;
+    periodKatti = Math.round((monthlyKatti * effectiveDurationMonths) * 100) / 100;
+  }
+
+  // Period Gross Payable (त्रैमासिक पाउने रकम) = Period Gross - Period Deductions
+  const periodPayableGross = Math.max(0, Math.round((periodGross - periodKatti) * 100) / 100);
 
   // Tax (त्रैमासिक १% सामाजिक सुरक्षा कर) = 1% on period payable gross
   let tax1Percent = 0;
@@ -245,7 +359,6 @@ export function calculateTeacherPayroll(
   const periodNet = Math.round((periodPayableGross - tax1Percent) * 100) / 100;
 
   // Monthly Net Payable (एक महिनाको खुद पाउने - दसैं तथा पोशाक भत्ता बाहेकको नियमित १ महिनाको खुद रकम)
-  // नियम: मासिक खुद = १ महिनाको कुल तलब (दसैं बाहेक) - १ महिनाको कट्टी - १% सामाजिक सुरक्षा कर
   const monthlyPayableGross = Math.max(0, Math.round((monthlyGross - monthlyKatti) * 100) / 100);
   const monthlyTax1Percent = monthlyPayableGross > 0 ? Math.round(monthlyPayableGross * 0.01 * 100) / 100 : 0;
   const monthlyNet = Math.round((monthlyPayableGross - monthlyTax1Percent) * 100) / 100;
@@ -404,9 +517,11 @@ export function calculatePartialSalary(
 
   const praABhatta = Number(teacher.praABhatta) || 0;
   const mahangiBhatta = Number(teacher.mahangiBhatta) || 0;
-  const protsahanBhatta = (teacher.protsahanBhatta !== undefined && teacher.protsahanBhatta !== null)
-    ? Number(teacher.protsahanBhatta)
-    : Math.round(basic * 0.10 * 100) / 100;
+  const protsahanBhatta = isPermanent
+    ? ((teacher.protsahanBhatta !== undefined && teacher.protsahanBhatta !== null)
+      ? Number(teacher.protsahanBhatta)
+      : Math.round(basic * 0.10 * 100) / 100)
+    : 0;
   const anyaBhatta = Number(teacher.anyaBhatta) || 0;
   const allowancesTotal = praABhatta + mahangiBhatta + protsahanBhatta + anyaBhatta;
 
@@ -494,16 +609,26 @@ export interface GradeSplitTeacherResult {
   p1GradeRate: number;
   p1GradeAmount: number;
   p1KoshThap: number;
+  p1CitKatti: number;
+  p1PraABhatta: number;
+  p1MahangiBhatta: number;
+  p1ProtsahanBhatta: number;
+  p1AnyaBhatta: number;
   p1MonthlyGross: number;
   p1MonthlyKatti: number;
   p1PeriodGross: number;
   p1PeriodKatti: number;
 
-  // Period 2 (Baisakh - Ashad - Grade change)
+  // Period 2 (Baisakh - Ashad - Grade change and Baisakh-specific CIT/allowances)
   p2GradeCount: number;
   p2GradeRate: number;
   p2GradeAmount: number;
   p2KoshThap: number;
+  p2CitKatti: number;
+  p2PraABhatta: number;
+  p2MahangiBhatta: number;
+  p2ProtsahanBhatta: number;
+  p2AnyaBhatta: number;
   p2MonthlyGross: number;
   p2MonthlyKatti: number;
   p2PeriodGross: number;
@@ -611,41 +736,49 @@ export function calculateGradeSplit9_3(
 
   const p1KoshThap = isPermanent ? Math.round(p1BasicPlusGrade * 0.10 * 100) / 100 : 0;
   const bimaThap = isPermanent ? (Number(teacher.bimaThap) || 400) : (Number(teacher.bimaThap) || 0);
-  const praABhatta = Number(teacher.praABhatta) || 0;
-  const mahangiBhatta = Number(teacher.mahangiBhatta) || 0;
-  const protsahanBhatta = (teacher.protsahanBhatta !== undefined && teacher.protsahanBhatta !== null)
-    ? Number(teacher.protsahanBhatta)
-    : Math.round(basic * 0.10 * 100) / 100;
-  const anyaBhatta = Number(teacher.anyaBhatta) || 0;
 
-  // Sync strictly with talabi varpai's monthlyGross if defined, else calculate
-  const p1MonthlyGross = Number(teacher.monthlyGross) || Math.round((basic + p1GradeAmount + p1KoshThap + bimaThap + praABhatta + mahangiBhatta + protsahanBhatta + anyaBhatta) * 100) / 100;
+  // Period 1 (Shrawan - Chaitra) allowances and CIT
+  const q1Val = getQuarterValues(teacher, 'first');
+  const p1PraABhatta = q1Val.praABhatta;
+  const p1MahangiBhatta = q1Val.mahangiBhatta;
+  const p1ProtsahanBhatta = q1Val.protsahanBhatta;
+  const p1AnyaBhatta = q1Val.anyaBhatta;
+  const p1CitKatti = q1Val.citKatti;
+
+  const p1MonthlyGross = Math.round((basic + p1GradeAmount + p1KoshThap + bimaThap + p1PraABhatta + p1MahangiBhatta + p1ProtsahanBhatta + p1AnyaBhatta) * 100) / 100;
   const p1KoshKatti = isPermanent ? Math.round(p1BasicPlusGrade * 0.20 * 100) / 100 : 0;
   const bimaKatti = isPermanent ? (Number(teacher.bimaKatti) || 800) : (Number(teacher.bimaKatti) || 0);
-  const citKatti = Number(teacher.citKatti) || 0;
   const otherKatti = Number(teacher.otherKatti) || 0;
-  const p1MonthlyKatti = Number(teacher.monthlyKatti) || Math.round((p1KoshKatti + bimaKatti + citKatti + otherKatti) * 100) / 100;
+  const p1MonthlyKatti = Math.round((p1KoshKatti + bimaKatti + p1CitKatti + otherKatti) * 100) / 100;
 
   // Period 1 Totals (based on actual worked duration)
   const p1PeriodGross = Math.round(p1MonthlyGross * p1EffectiveMonths * 100) / 100;
   const p1PeriodKatti = Math.round(p1MonthlyKatti * p1EffectiveMonths * 100) / 100;
 
-  // Period 2 Grade: respects maximum grade limit for teacher's designation (मा.वि. ८, नि.मा.वि. ८, प्रा.वि. २nd ८, प्रा.वि. ३rd ६)
+  // Period 2 Grade: स्थायी शिक्षकको मात्र १ ग्रेड थपिने (अधिकतम ग्रेड सीमा अनुसार), गैर-स्थायीको ०
   const maxGrade = getMaxGradeForDesignation(teacher.designation);
-  const p2GradeCount = teacher.gradeCountBaisakh !== undefined 
-    ? Math.min(maxGrade, Number(teacher.gradeCountBaisakh)) 
-    : (isPermanent ? Math.min(maxGrade, p1GradeCount + 1) : Math.min(maxGrade, p1GradeCount));
+  const p2GradeCount = isPermanent
+    ? (teacher.gradeCountBaisakh !== undefined
+        ? Math.min(maxGrade, Number(teacher.gradeCountBaisakh))
+        : Math.min(maxGrade, p1GradeCount + 1))
+    : 0;
   
   const p2GradeRate = p1GradeRate || (p2GradeCount > 0 ? Math.round(basic / 30) : 0);
   const p2GradeAmount = p2GradeCount * p2GradeRate;
   const p2BasicPlusGrade = basic + p2GradeAmount;
   const p2KoshThap = isPermanent ? Math.round(p2BasicPlusGrade * 0.10 * 100) / 100 : 0;
-  const gradeDelta = (p2GradeCount - p1GradeCount) * p2GradeRate;
-  const koshThapDelta = isPermanent ? Math.round(gradeDelta * 0.10 * 100) / 100 : 0;
-  const koshKattiDelta = isPermanent ? Math.round(gradeDelta * 0.20 * 100) / 100 : 0;
+  const p2KoshKatti = isPermanent ? Math.round(p2BasicPlusGrade * 0.20 * 100) / 100 : 0;
 
-  const p2MonthlyGross = Math.round((p1MonthlyGross + gradeDelta + koshThapDelta) * 100) / 100;
-  const p2MonthlyKatti = Math.round((p1MonthlyKatti + koshKattiDelta) * 100) / 100;
+  // Period 2 (Baisakh - Ashad) allowances and CIT
+  const q4Val = getQuarterValues(teacher, 'fourth');
+  const p2PraABhatta = q4Val.praABhatta;
+  const p2MahangiBhatta = q4Val.mahangiBhatta;
+  const p2ProtsahanBhatta = q4Val.protsahanBhatta;
+  const p2AnyaBhatta = q4Val.anyaBhatta;
+  const p2CitKatti = q4Val.citKatti;
+
+  const p2MonthlyGross = Math.round((basic + p2GradeAmount + p2KoshThap + bimaThap + p2PraABhatta + p2MahangiBhatta + p2ProtsahanBhatta + p2AnyaBhatta) * 100) / 100;
+  const p2MonthlyKatti = Math.round((p2KoshKatti + bimaKatti + p2CitKatti + otherKatti) * 100) / 100;
 
   // Period 2 Totals (based on actual worked duration)
   const p2PeriodGross = Math.round(p2MonthlyGross * p2EffectiveMonths * 100) / 100;
@@ -688,6 +821,11 @@ export function calculateGradeSplit9_3(
     p1GradeRate,
     p1GradeAmount,
     p1KoshThap,
+    p1CitKatti,
+    p1PraABhatta,
+    p1MahangiBhatta,
+    p1ProtsahanBhatta,
+    p1AnyaBhatta,
     p1MonthlyGross,
     p1MonthlyKatti,
     p1PeriodGross,
@@ -696,6 +834,11 @@ export function calculateGradeSplit9_3(
     p2GradeRate,
     p2GradeAmount,
     p2KoshThap,
+    p2CitKatti,
+    p2PraABhatta,
+    p2MahangiBhatta,
+    p2ProtsahanBhatta,
+    p2AnyaBhatta,
     p2MonthlyGross,
     p2MonthlyKatti,
     p2PeriodGross,

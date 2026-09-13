@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Check, Search, Filter, Gift, Shirt, Calendar, Info, Sparkles, Clock, Eye, EyeOff, Users, X, CheckSquare, Square } from 'lucide-react';
+import { Edit2, Trash2, Check, Search, Filter, Gift, Shirt, Calendar, Info, Sparkles, Clock, Eye, EyeOff, Users, X, CheckSquare, Square, SlidersHorizontal } from 'lucide-react';
 import { TeacherRecord, SchoolInfo } from '../types';
 import { formatNepaliCurrency, toNepaliNumber } from '../utils/nepaliNumber';
 import { calculateGrandTotals } from '../utils/calculations';
@@ -22,6 +22,12 @@ interface PayrollTableProps {
   onToggleHideTeacher?: (id: string) => void;
   onOpenGradeSplitView?: () => void;
   onAutoFillProtsahan?: () => void;
+  onUpdateAllowance?: (
+    teacherId: string, 
+    field: 'dashainBhatta' | 'poshakBhatta' | 'protsahanBhatta' | 'mahangiBhatta' | 'praABhatta' | 'anyaBhatta' | 'citKatti', 
+    value: number
+  ) => void;
+  onOpenQuarterlyAllowances?: () => void;
 }
 
 export const PayrollTable: React.FC<PayrollTableProps> = ({
@@ -41,13 +47,16 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
   onDeleteTeacher,
   onToggleHideTeacher,
   onOpenGradeSplitView,
-  onAutoFillProtsahan
+  onAutoFillProtsahan,
+  onUpdateAllowance,
+  onOpenQuarterlyAllowances
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDesignation, setFilterDesignation] = useState('ALL');
   const [showHiddenTeachers, setShowHiddenTeachers] = useState(false);
   const [isHideManagerModalOpen, setIsHideManagerModalOpen] = useState(false);
   const [modalSearch, setModalSearch] = useState('');
+  const [isAllowanceEditMode, setIsAllowanceEditMode] = useState(false);
 
   const hiddenCount = teachers.filter((t) => t.isHidden).length;
 
@@ -311,6 +320,33 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                 <span>१०% प्रोत्साहन स्वतः भर्ने</span>
               </button>
             )}
+
+            {/* Toggle Inline Allowance Edit Mode */}
+            <button
+              type="button"
+              onClick={() => setIsAllowanceEditMode(!isAllowanceEditMode)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded border transition-colors cursor-pointer ${
+                isAllowanceEditMode
+                  ? 'bg-amber-600 text-white border-amber-700 shadow-2xs'
+                  : 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+              }`}
+              title="तालिकामा सिधै भत्ता रकम टाइप गर्न इन्ट्री मोड खोल्नुहोस् वा बन्द गर्नुहोस्"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>{isAllowanceEditMode ? 'भत्ता इन्ट्री मोड (खुल्ला ✓)' : 'भत्ता रकम इन्ट्री मोड'}</span>
+            </button>
+
+            {/* Open Dedicated Quarterly Allowance View */}
+            {onOpenQuarterlyAllowances && (
+              <button
+                type="button"
+                onClick={onOpenQuarterlyAllowances}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded border border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-900 shadow-2xs transition-colors cursor-pointer"
+                title="त्रैमासिक भत्ता प्रविष्टि पूर्ण पृष्ठ खोल्नुहोस्"
+              >
+                <span>त्रैमासिक भत्ता प्रविष्टि पृष्ठ</span>
+              </button>
+            )}
           </div>
 
           <div className="text-xs text-stone-600 flex items-center gap-2">
@@ -525,23 +561,67 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                     </td>
 
                     {/* PraA Bhatta */}
-                    <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-amber-50/20">
-                      {teacher.praABhatta > 0 ? format(teacher.praABhatta) : '-'}
+                    <td className="border border-stone-300 px-1 py-1 text-right font-mono bg-amber-50/20">
+                      {isAllowanceEditMode && onUpdateAllowance ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={teacher.praABhatta ?? 0}
+                          onChange={(e) => onUpdateAllowance(teacher.id, 'praABhatta', parseFloat(e.target.value) || 0)}
+                          className="w-16 text-right font-mono px-1 py-0.5 text-xs rounded border border-amber-300 bg-white focus:ring-1 focus:ring-amber-500"
+                        />
+                      ) : (
+                        teacher.praABhatta > 0 ? format(teacher.praABhatta) : '-'
+                      )}
                     </td>
 
                     {/* Mahangi Bhatta */}
-                    <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-amber-50/20">
-                      {teacher.mahangiBhatta > 0 ? format(teacher.mahangiBhatta) : '-'}
+                    <td className="border border-stone-300 px-1 py-1 text-right font-mono bg-amber-50/20">
+                      {isAllowanceEditMode && onUpdateAllowance ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={teacher.mahangiBhatta ?? 0}
+                          onChange={(e) => onUpdateAllowance(teacher.id, 'mahangiBhatta', parseFloat(e.target.value) || 0)}
+                          className="w-16 text-right font-mono px-1 py-0.5 text-xs rounded border border-amber-300 bg-white focus:ring-1 focus:ring-amber-500"
+                        />
+                      ) : (
+                        teacher.mahangiBhatta > 0 ? format(teacher.mahangiBhatta) : '-'
+                      )}
                     </td>
 
                     {/* Protsahan Bhatta */}
-                    <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-amber-50/20">
-                      {teacher.protsahanBhatta && teacher.protsahanBhatta > 0 ? format(teacher.protsahanBhatta) : '-'}
+                    <td className="border border-stone-300 px-1 py-1 text-right font-mono bg-amber-50/20">
+                      {isAllowanceEditMode && onUpdateAllowance ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={teacher.protsahanBhatta ?? 0}
+                          onChange={(e) => onUpdateAllowance(teacher.id, 'protsahanBhatta', parseFloat(e.target.value) || 0)}
+                          className="w-18 text-right font-mono px-1 py-0.5 text-xs rounded border border-blue-300 bg-white focus:ring-1 focus:ring-blue-500 font-bold text-blue-950"
+                        />
+                      ) : (
+                        teacher.protsahanBhatta && teacher.protsahanBhatta > 0 ? format(teacher.protsahanBhatta) : '-'
+                      )}
                     </td>
 
                     {/* Anya Bhatta */}
-                    <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-amber-50/20">
-                      {teacher.anyaBhatta > 0 ? format(teacher.anyaBhatta) : '-'}
+                    <td className="border border-stone-300 px-1 py-1 text-right font-mono bg-amber-50/20">
+                      {isAllowanceEditMode && onUpdateAllowance ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={teacher.anyaBhatta ?? 0}
+                          onChange={(e) => onUpdateAllowance(teacher.id, 'anyaBhatta', parseFloat(e.target.value) || 0)}
+                          className="w-16 text-right font-mono px-1 py-0.5 text-xs rounded border border-amber-300 bg-white focus:ring-1 focus:ring-amber-500"
+                        />
+                      ) : (
+                        teacher.anyaBhatta > 0 ? format(teacher.anyaBhatta) : '-'
+                      )}
                     </td>
 
                     {/* Monthly Gross */}
@@ -550,13 +630,35 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                     </td>
 
                     {/* NEW: Dashain Bhatta (Shrawan) */}
-                    <td className="border border-stone-300 px-2 py-1.5 text-right font-mono font-bold bg-amber-50/60 text-amber-950">
-                      {teacher.dashainBhatta && teacher.dashainBhatta > 0 ? format(teacher.dashainBhatta) : '-'}
+                    <td className="border border-stone-300 px-1 py-1 text-right font-mono font-bold bg-amber-50/60 text-amber-950">
+                      {isAllowanceEditMode && onUpdateAllowance ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={teacher.dashainBhatta ?? 0}
+                          onChange={(e) => onUpdateAllowance(teacher.id, 'dashainBhatta', parseFloat(e.target.value) || 0)}
+                          className="w-20 text-right font-mono px-1 py-0.5 text-xs rounded border border-purple-400 bg-purple-50 focus:ring-1 focus:ring-purple-600 font-bold text-purple-950"
+                        />
+                      ) : (
+                        teacher.dashainBhatta && teacher.dashainBhatta > 0 ? format(teacher.dashainBhatta) : '-'
+                      )}
                     </td>
 
                     {/* NEW: Poshak Bhatta (Chaitra) */}
-                    <td className="border border-stone-300 px-2 py-1.5 text-right font-mono font-bold bg-emerald-50/60 text-emerald-950">
-                      {teacher.poshakBhatta && teacher.poshakBhatta > 0 ? format(teacher.poshakBhatta) : '-'}
+                    <td className="border border-stone-300 px-1 py-1 text-right font-mono font-bold bg-emerald-50/60 text-emerald-950">
+                      {isAllowanceEditMode && onUpdateAllowance ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={teacher.poshakBhatta ?? 0}
+                          onChange={(e) => onUpdateAllowance(teacher.id, 'poshakBhatta', parseFloat(e.target.value) || 0)}
+                          className="w-20 text-right font-mono px-1 py-0.5 text-xs rounded border border-emerald-400 bg-emerald-50 focus:ring-1 focus:ring-emerald-600 font-bold text-emerald-950"
+                        />
+                      ) : (
+                        teacher.poshakBhatta && teacher.poshakBhatta > 0 ? format(teacher.poshakBhatta) : '-'
+                      )}
                     </td>
 
                     {/* Period Gross Total */}
@@ -575,8 +677,20 @@ export const PayrollTable: React.FC<PayrollTableProps> = ({
                     </td>
 
                     {/* CIT Katti */}
-                    <td className="border border-stone-300 px-1.5 py-1.5 text-right font-mono bg-rose-50/20">
-                      {teacher.citKatti > 0 ? format(teacher.citKatti) : '-'}
+                    <td className="border border-stone-300 px-1 py-1 text-right font-mono bg-rose-50/20">
+                      {isAllowanceEditMode && onUpdateAllowance ? (
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={teacher.citKatti ?? 0}
+                          onChange={(e) => onUpdateAllowance(teacher.id, 'citKatti', parseFloat(e.target.value) || 0)}
+                          className="w-16 text-right font-mono px-1 py-0.5 text-xs rounded border border-rose-300 bg-white focus:ring-1 focus:ring-rose-500 font-semibold text-rose-950"
+                          title="सा. क. कोष / ना. ल. कोष कट्टी"
+                        />
+                      ) : (
+                        teacher.citKatti > 0 ? format(teacher.citKatti) : '-'
+                      )}
                     </td>
 
                     {/* Monthly Katti Total */}
