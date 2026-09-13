@@ -172,8 +172,9 @@ export default function App() {
         if (yr.fiscalYear === currentPayroll.fiscalYear) {
           const updatedTeachers = yr.teachers.map((t) => {
             if (t.id === teacherId) {
-              // नियम: प्रोत्साहन भत्ता स्थायी शिक्षक/कर्मचारीको मात्र हिसाब हुने
-              const finalVal = (field === 'protsahanBhatta' && t.category !== 'permanent') ? 0 : value;
+              const is2082Year = yr.fiscalYear.includes('२०८२') || yr.fiscalYear.includes('2082');
+              // नियम: २०८२/८३ सालमा कुनै पनि शिक्षकको प्रोत्साहन भत्ता प्रविष्टि नगर्ने, अन्य वर्षमा स्थायीको मात्र
+              const finalVal = (field === 'protsahanBhatta' && (is2082Year || t.category !== 'permanent')) ? 0 : value;
               
               const currentQKey = quarterKey || (
                 yr.selectedQuarter === 'first' ? 'first' :
@@ -231,8 +232,9 @@ export default function App() {
           const updatedTeachers = yr.teachers.map((t) => {
             if (updateMap.has(t.id)) {
               const incoming = { ...updateMap.get(t.id)! };
-              // स्थायीको मात्र प्रोत्साहन भत्ता
-              if (t.category !== 'permanent' && 'protsahanBhatta' in incoming) {
+              const is2082Year = yr.fiscalYear.includes('२०८२') || yr.fiscalYear.includes('2082');
+              // २०८२/८३ सालमा कुनै पनि शिक्षकको प्रोत्साहन भत्ता प्रविष्टि नगर्ने, अन्यमा स्थायीको मात्र
+              if ((is2082Year || t.category !== 'permanent') && 'protsahanBhatta' in incoming) {
                 incoming.protsahanBhatta = 0;
               }
               const updated = {
@@ -534,6 +536,11 @@ export default function App() {
 
   // Handler: Auto-fill Protsahan Bhatta (10% of scale) for permanent teachers only in active fiscal year
   const handleAutoFillProtsahan = () => {
+    const is2082 = currentPayroll.fiscalYear.includes('२०८२') || currentPayroll.fiscalYear.includes('2082');
+    if (is2082) {
+      alert('२०८२/८३ सालमा कुनै पनि शिक्षकको प्रोत्साहन भत्ता प्रविष्टि नगरिने व्यवस्था गरिएको छ।');
+      return;
+    }
     setFiscalYears((prev) =>
       prev.map((yr) => {
         if (yr.fiscalYear === currentPayroll.fiscalYear) {

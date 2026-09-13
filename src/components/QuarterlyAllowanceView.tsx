@@ -72,6 +72,8 @@ export const QuarterlyAllowanceView: React.FC<QuarterlyAllowanceViewProps> = ({
     selectedQuarter === 'third' ? 'third' :
     (selectedQuarter === 'fourth' || selectedQuarter === 'three_months') ? 'fourth' : 'first';
 
+  const is2082 = fiscalYear.includes('२०८२') || fiscalYear.includes('2082');
+
   const triggerSuccessToast = (msg?: string) => {
     if (msg) setToastMessage(msg);
     setShowSuccessToast(true);
@@ -192,6 +194,10 @@ export const QuarterlyAllowanceView: React.FC<QuarterlyAllowanceViewProps> = ({
 
   // Bulk action: Auto fill Protsahan (10% of basic)
   const handleAutoFillProtsahan = () => {
+    if (is2082) {
+      alert('२०८२/८३ सालमा कुनै पनि शिक्षकको प्रोत्साहन भत्ता प्रविष्टि नगरिने व्यवस्था गरिएको छ।');
+      return;
+    }
     const updates = activeTeachers.map((t) => {
       const isPerm = t.category === 'permanent';
       const amount = isPerm ? Math.round((t.basicSalary || 0) * 0.10 * 100) / 100 : 0;
@@ -547,14 +553,16 @@ export const QuarterlyAllowanceView: React.FC<QuarterlyAllowanceViewProps> = ({
             👔 पोशाक भत्ता (रू १०,०००)
           </button>
 
-          <button
-            type="button"
-            onClick={handleAutoFillProtsahan}
-            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-300 transition-colors cursor-pointer"
-            title="सबै स्थायी शिक्षक/कर्मचारीको तलब स्केलको १०% प्रोत्साहन भत्ता स्वतः भर्ने"
-          >
-            ⭐ प्रोत्साहन भत्ता (१०%)
-          </button>
+          {!is2082 && (
+            <button
+              type="button"
+              onClick={handleAutoFillProtsahan}
+              className="px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-300 transition-colors cursor-pointer"
+              title="सबै स्थायी शिक्षक/कर्मचारीको तलब स्केलको १०% प्रोत्साहन भत्ता स्वतः भर्ने"
+            >
+              ⭐ प्रोत्साहन भत्ता (१०%)
+            </button>
+          )}
 
           <button
             type="button"
@@ -710,21 +718,24 @@ export const QuarterlyAllowanceView: React.FC<QuarterlyAllowanceViewProps> = ({
                         />
                       </td>
 
-                      {/* Protsahan Bhatta Input - स्थायीको मात्र */}
+                      {/* Protsahan Bhatta Input - स्थायीको मात्र (२०८२/८३ मा प्रविष्टि नगरिने) */}
                       <td className="px-1 py-1 text-right bg-blue-50/30">
                         <input
                           type="number"
                           min="0"
                           step="1"
-                          disabled={teacher.category !== 'permanent'}
-                          value={teacher.category === 'permanent' ? qVals.protsahanBhatta : 0}
-                          onChange={(e) => onUpdateAllowance(teacher.id, 'protsahanBhatta', parseFloat(e.target.value) || 0, currentQKey)}
+                          disabled={is2082 || teacher.category !== 'permanent'}
+                          value={is2082 ? 0 : (teacher.category === 'permanent' ? qVals.protsahanBhatta : 0)}
+                          onChange={(e) => {
+                            if (is2082) return;
+                            onUpdateAllowance(teacher.id, 'protsahanBhatta', parseFloat(e.target.value) || 0, currentQKey);
+                          }}
                           className={`w-full text-right font-mono font-bold px-1.5 py-1 text-xs rounded border ${
-                            teacher.category === 'permanent'
+                            !is2082 && teacher.category === 'permanent'
                               ? 'border-blue-300 bg-white focus:ring-1 focus:ring-blue-500 text-blue-950'
                               : 'border-stone-200 bg-stone-100 text-stone-400 cursor-not-allowed'
                           }`}
-                          title={teacher.category === 'permanent' ? 'स्केलको १०% प्रोत्साहन भत्ता' : 'नियम: स्थायी शिक्षक/कर्मचारीलाई मात्र लागु हुने'}
+                          title={is2082 ? '२०८२/८३ सालमा कुनै पनि शिक्षकको प्रोत्साहन भत्ता प्रविष्टि नगरिने व्यवस्था' : (teacher.category === 'permanent' ? 'स्केलको १०% प्रोत्साहन भत्ता' : 'नियम: स्थायी शिक्षक/कर्मचारीलाई मात्र लागु हुने')}
                         />
                       </td>
 
@@ -1014,14 +1025,18 @@ export const QuarterlyAllowanceView: React.FC<QuarterlyAllowanceViewProps> = ({
                                   <input
                                     type="number"
                                     min="0"
-                                    disabled={teacher.category !== 'permanent'}
-                                    value={teacher.category === 'permanent' ? qData.protsahanBhatta : 0}
-                                    onChange={(e) => onUpdateAllowance(teacher.id, 'protsahanBhatta', parseFloat(e.target.value) || 0, q.key)}
+                                    disabled={is2082 || teacher.category !== 'permanent'}
+                                    value={is2082 ? 0 : (teacher.category === 'permanent' ? qData.protsahanBhatta : 0)}
+                                    onChange={(e) => {
+                                      if (is2082) return;
+                                      onUpdateAllowance(teacher.id, 'protsahanBhatta', parseFloat(e.target.value) || 0, q.key);
+                                    }}
                                     className={`w-20 text-right font-mono font-bold px-1.5 py-0.5 text-xs rounded border ${
-                                      teacher.category === 'permanent'
+                                      !is2082 && teacher.category === 'permanent'
                                         ? 'border-blue-300 bg-white focus:ring-1 focus:ring-blue-500'
                                         : 'border-stone-200 bg-stone-100 text-stone-400 cursor-not-allowed'
                                     }`}
+                                    title={is2082 ? '२०८२/८३ सालमा कुनै पनि शिक्षकको प्रोत्साहन भत्ता प्रविष्टि नगरिने व्यवस्था' : ''}
                                   />
                                 </td>
 

@@ -27,6 +27,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
   currentFiscalYear = '२०८२/८३'
 }) => {
   const is2083 = currentFiscalYear.includes('२०८३') || currentFiscalYear.includes('2083');
+  const is2082 = currentFiscalYear.includes('२०८२') || currentFiscalYear.includes('2082');
   const defaultScale = getYearScaleConfig(currentFiscalYear, 'मा.वि. तृतीय');
 
   const [formData, setFormData] = useState<TeacherRecord>({
@@ -75,7 +76,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
         bimaThap: 400,
         praABhatta: 0,
         mahangiBhatta: 5000,
-        protsahanBhatta: Math.round(baseSalary * 0.10 * 100) / 100, // स्केलको १०% स्वतः भरिने
+        protsahanBhatta: is2082 ? 0 : Math.round(baseSalary * 0.10 * 100) / 100, // २०८२/८३ मा ०, अन्य वर्षमा १०%
         anyaBhatta: 0,
         koshKatti: Math.round((baseSalary + gRate) * 0.20 * 100) / 100,
         bimaKatti: 800,
@@ -86,7 +87,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       };
       setFormData(calculateTeacherPayroll(base, monthsCount, true));
     }
-  }, [initialTeacher, nextSn, isOpen, monthsCount, currentFiscalYear, is2083]);
+  }, [initialTeacher, nextSn, isOpen, monthsCount, currentFiscalYear, is2083, is2082]);
 
   if (!isOpen) return null;
 
@@ -95,9 +96,9 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
     const parsed = parseFloat(value) || 0;
     const updated = { ...formData, [field]: parsed };
     
-    // तलब स्केल परिवर्तन हुँदा स्वतः हिसाब अन भएमा प्रोत्साहन भत्ता (स्थायीको मात्र) स्केलको १०% हुने
+    // तलब स्केल परिवर्तन हुँदा स्वतः हिसाब अन भएमा प्रोत्साहन भत्ता (२०८२/८३ मा ०, अन्य वर्षमा स्थायीको मात्र स्केलको १०%)
     if (field === 'basicSalary' && autoCalculateFields) {
-      updated.protsahanBhatta = updated.category === 'permanent' ? Math.round(parsed * 0.10 * 100) / 100 : 0;
+      updated.protsahanBhatta = (is2082 || updated.category !== 'permanent') ? 0 : Math.round(parsed * 0.10 * 100) / 100;
     }
 
     if (autoCalculateFields) {
@@ -143,7 +144,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       koshKatti: isPerm ? formData.koshKatti : 0,
       gradeCount: isPerm ? formData.gradeCount : 0,
       gradeRate: isPerm ? gradeRate : 0,
-      protsahanBhatta: isPerm ? (Math.round(basic * 0.10 * 100) / 100) : 0 // स्थायीको मात्र १०%
+      protsahanBhatta: (is2082 || !isPerm) ? 0 : (Math.round(basic * 0.10 * 100) / 100) // २०८२/८३ मा ०, अन्यमा स्थायीको मात्र १०%
     };
 
     setFormData(calculateTeacherPayroll(updated, monthsCount, autoCalculateFields));
@@ -160,7 +161,7 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
       koshKatti: isPerm ? formData.koshKatti : 0,
       bimaThap: isPerm ? (formData.bimaThap || 400) : 0,
       bimaKatti: isPerm ? (formData.bimaKatti || 800) : 0,
-      protsahanBhatta: isPerm ? (formData.protsahanBhatta || Math.round(formData.basicSalary * 0.10 * 100) / 100) : 0
+      protsahanBhatta: is2082 ? 0 : (isPerm ? (formData.protsahanBhatta || Math.round(formData.basicSalary * 0.10 * 100) / 100) : 0)
     };
     setFormData(calculateTeacherPayroll(updated, monthsCount, autoCalculateFields));
   };
@@ -442,11 +443,17 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
                     <label className="block text-xs font-semibold text-stone-700">
                       प्रोत्साहन भत्ता (१०%)
                     </label>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${formData.category === 'permanent' ? 'bg-blue-100 text-blue-800' : 'bg-stone-100 text-stone-500'}`}>
-                      {formData.category === 'permanent' ? 'स्थायीको मात्र' : 'गैर-स्थायी (०)'}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                      is2082
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                        : formData.category === 'permanent'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-stone-100 text-stone-500'
+                    }`}>
+                      {is2082 ? '२०८२/८३ मा प्रविष्टि नगरिने (०)' : formData.category === 'permanent' ? 'स्थायीको मात्र' : 'गैर-स्थायी (०)'}
                     </span>
                   </div>
-                  {formData.category === 'permanent' && (
+                  {formData.category === 'permanent' && !is2082 && (
                     <button
                       type="button"
                       onClick={() => {
@@ -466,19 +473,28 @@ export const TeacherModal: React.FC<TeacherModalProps> = ({
                 <input
                   type="number"
                   step="any"
-                  disabled={formData.category !== 'permanent'}
-                  value={formData.category === 'permanent' ? (formData.protsahanBhatta !== undefined ? formData.protsahanBhatta : '') : 0}
-                  onChange={(e) => handleNumberChange('protsahanBhatta', e.target.value)}
+                  disabled={is2082 || formData.category !== 'permanent'}
+                  value={is2082 ? 0 : (formData.category === 'permanent' ? (formData.protsahanBhatta !== undefined ? formData.protsahanBhatta : '') : 0)}
+                  onChange={(e) => {
+                    if (is2082) return;
+                    handleNumberChange('protsahanBhatta', e.target.value);
+                  }}
                   className={`w-full text-xs px-3 py-2 border rounded font-mono font-medium ${
-                    formData.category === 'permanent'
+                    !is2082 && formData.category === 'permanent'
                       ? 'border-stone-300 bg-white focus:ring-1 focus:ring-blue-500 text-stone-800'
                       : 'border-stone-200 bg-stone-100 text-stone-400 cursor-not-allowed'
                   }`}
-                  placeholder={formData.category === 'permanent' ? `१०% = रू ${Math.round((Number(formData.basicSalary) || 0) * 0.10)}` : 'गैर-स्थायीलाई लागु हुँदैन (रू ०)'}
+                  placeholder={is2082 ? '२०८२/८३ मा प्रोत्साहन भत्ता प्रविष्टि नगरिएको (रू ०)' : formData.category === 'permanent' ? `१०% = रू ${Math.round((Number(formData.basicSalary) || 0) * 0.10)}` : 'गैर-स्थायीलाई लागु हुँदैन (रू ०)'}
                 />
                 <div className="flex items-center justify-between mt-1 text-[10px] text-stone-500">
-                  <span>{formData.category === 'permanent' ? 'स्केलको १०% स्वतः भरिने' : 'नियम: स्थायीको मात्र हिसाब हुन्छ'}</span>
-                  {formData.category === 'permanent' && (
+                  <span>
+                    {is2082
+                      ? '२०८२/८३ सालमा कुनै पनि शिक्षकको प्रोत्साहन भत्ता प्रविष्टि नगरिने'
+                      : formData.category === 'permanent'
+                      ? 'स्केलको १०% स्वतः भरिने'
+                      : 'नियम: स्थायीको मात्र हिसाब हुन्छ'}
+                  </span>
+                  {formData.category === 'permanent' && !is2082 && (
                     <span className="text-emerald-700 font-medium">म्यानुअल टाइप गर्न मिल्ने</span>
                   )}
                 </div>

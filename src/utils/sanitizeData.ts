@@ -122,17 +122,46 @@ export function sanitizeFiscalYears(rawYears: FiscalYearPayroll[]): FiscalYearPa
         }
       }
 
-      // Auto-fill Protsahan Bhatta as 10% of scale ONLY for permanent staff; non-permanent is 0
-      if (teacherData.category === 'permanent') {
-        if (teacherData.protsahanBhatta === undefined || teacherData.protsahanBhatta === 0 || teacherData.protsahanBhatta === null) {
-          teacherData.protsahanBhatta = Math.round(teacherData.basicSalary * 0.10 * 100) / 100;
-          teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
-        }
-      } else {
+      // Protsahan Bhatta handling: In 2082/83 (२०८२/८३), no teacher receives protsahan bhatta per user request
+      if (is2082) {
         if (teacherData.protsahanBhatta !== 0) {
           teacherData.protsahanBhatta = 0;
           teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
         }
+        if (teacherData.protsahanBhattaBaisakh && teacherData.protsahanBhattaBaisakh !== 0) {
+          teacherData.protsahanBhattaBaisakh = 0;
+          teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
+        }
+        if (teacherData.quarterlyDetails) {
+          const qd = { ...teacherData.quarterlyDetails };
+          let qdChanged = false;
+          (['first', 'second', 'third', 'fourth'] as const).forEach((qKey) => {
+            if (qd[qKey]?.protsahanBhatta && qd[qKey]!.protsahanBhatta !== 0) {
+              qd[qKey] = { ...qd[qKey], protsahanBhatta: 0 };
+              qdChanged = true;
+            }
+          });
+          if (qdChanged) {
+            teacherData.quarterlyDetails = qd;
+            teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
+          }
+        }
+      } else {
+        // Auto-fill Protsahan Bhatta as 10% of scale ONLY for permanent staff in other years; non-permanent is 0
+        if (teacherData.category === 'permanent') {
+          if (teacherData.protsahanBhatta === undefined || teacherData.protsahanBhatta === 0 || teacherData.protsahanBhatta === null) {
+            teacherData.protsahanBhatta = Math.round(teacherData.basicSalary * 0.10 * 100) / 100;
+            teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
+          }
+        } else {
+          if (teacherData.protsahanBhatta !== 0) {
+            teacherData.protsahanBhatta = 0;
+            teacherData = calculateTeacherPayroll(teacherData, yr.monthsCount, true);
+          }
+        }
+      }
+
+      if (teacherData.category !== 'permanent') {
         if (teacherData.gradeCount !== 0) {
           teacherData.gradeCount = 0;
           teacherData.gradeAmount = 0;
@@ -161,11 +190,13 @@ export function sanitizeFiscalYears(rawYears: FiscalYearPayroll[]): FiscalYearPa
           }
           seenIds.add(uniqueId);
 
-          uniqueTeachers.push({
+          const newT = {
             ...it,
+            protsahanBhatta: is2082 ? 0 : it.protsahanBhatta,
             id: uniqueId,
             sn: uniqueTeachers.length + 1
-          });
+          };
+          uniqueTeachers.push(calculateTeacherPayroll(newT, yr.monthsCount, true));
         }
       });
     }
